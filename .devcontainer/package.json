@@ -1,0 +1,11 @@
+{
+  "name": "docker-in-docker-dev-container",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.15.0",
+    "prettier": "^3.3.3",
+    "prettier-eslint": "^16.3.0",
+    "typescript": "^5.6.3"
+  }
+}

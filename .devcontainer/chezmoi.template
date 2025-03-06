@@ -1,0 +1,8 @@
+[data]
+email="YOUR-EMAIL"
+name="YOUR-NAME"
+zsh_theme="robbyrussell"
+
+[sourceVCS]
+autopush=false
+autocommit=true
