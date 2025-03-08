@@ -1,0 +1,22 @@
+services:
+  isession:
+    container_name: isession
+    image: ${DOCKER_REPOSITORY}/isession:latest
+    build:
+      context: ./isession
+      dockerfile: Dockerfile
+    command: ['uv', 'run', 'ipython']
+    volumes:
+      - ./image_processor/:/app/image_processor
+      - isession_data:/app/.ipython/profile_default
+      - ${PWD}/isession/startup:/app/.ipython/profile_default/startup
+      - ${PWD}/images:/app/images
+      - ${PWD}/processed:/app/processed
+    environment:
+      - INPUT_FOLDER=/app/images
+      - OUTPUT_FOLDER=/app/processed
+    stdin_open: true
+    tty: true
+
+volumes:
+  isession_data:
