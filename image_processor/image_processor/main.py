@@ -106,27 +106,24 @@ def rotate(image_path: Union[str, Path], output_path: Union[str, Path]) -> None:
         image_path: Path to the input image.
         output_path: Path to save the output image.
     """
-    # Open the image with Pillow using a context manager
-    print(f"Opening image {image_path}")
     rotated_img = None
 
     with Image.open(image_path) as img:
         # Extract EXIF data
         orientation = _extract_orientation(img)
-        print(f"Orientation: {orientation}")
 
         # Apply rotation based on EXIF orientation
         if orientation == 3:
-            print("Orientation is 3. Applying rotation of 180 degrees.")
+            print(f"{image_path}: Orientation is 3. Applying rotation of 180 degrees.")
             rotated_img = img.rotate(180)
         elif orientation == 6:
-            print("Orientation is 6. Applying rotation of 270 degrees.")
+            print(f"{image_path}: Orientation is 6. Applying rotation of 270 degrees.")
             rotated_img = img.rotate(270)
         elif orientation == 8:
-            print("Orientation is 8. Applying rotation of 90 degrees.")
+            print(f"{image_path}: Orientation is 8. Applying rotation of 90 degrees.")
             rotated_img = img.rotate(90)
         else:
-            print("No rotation needed (orientation is 1).")
+            print(f"{image_path}: No rotation needed (orientation is 1).")
 
         exif_updated_img, exif_bytes = _update_orientation(
             rotated_img if rotated_img is not None else img
