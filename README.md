@@ -15,8 +15,13 @@ This is a simple image processor that can be used to apply filters to images. It
 You can run the application without any setup by using the Docker image that is
 available on the Github Container Registry. However, if you want to build the
 image yourself, you can do so by configuring your own docker repository and
-running the `manage.sh build` command. See the `.env.template`file for the
-environment variables that need to be set.
+running the `manage.sh build` command. See the `.env.template` file for the
+environment variables that need to be set. As for all `.template` files, just
+copy that file, remove the `.template` extension, and fill in the values. Use
+the `docker-compose.dev.yml` file to build the image locally and push it to your
+registry.
+
+````bash
 
 ## Usage
 
@@ -44,7 +49,7 @@ manage.sh dev --isession
 
 # Build a new image from the Dockerfile and push it to the Github Container Registry:
 manage.sh build
-```
+````
 
 ## Further Development
 
