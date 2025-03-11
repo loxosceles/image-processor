@@ -8,6 +8,7 @@ This is a simple image processor that can be used to apply filters to images. It
 - Rotate
 - Resize
 - Blur
+- ... more to come
 
 ## Setup
 
@@ -48,4 +49,11 @@ manage.sh build
 ## Further Development
 
 This is WIP. While the current implementation is only meant as a demo project, I
-might add more features in the future for it to become a more useful tool.
+might add more features in the future for it to become a more useful tool. I
+have provided a devcontainer configuration for VSCode, to quickly build a
+reproducible development environment. It leverages `chezmoi` to manage the
+user configuration file. Basically, you only need to set up your dotfiles here.
+Then chezmoi will do the rest. Look at this project to see how this works in detail:
+[devcontainer_template](https://github.com/loxosceles/devcontainer_config_template).
+
+Also, check out the [chezmoi documentation](https://chezmoi.io) which is a great project!
