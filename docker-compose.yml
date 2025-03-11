@@ -1,13 +1,23 @@
 services:
+  image_processor:
+    container_name: image_processor
+    build:
+      context: ./image_processor
+      dockerfile: Dockerfile
+    volumes:
+      - ${PWD}/images:/app/images
+      - ${PWD}/processed:/app/processed
+    environment:
+      - INPUT_FOLDER=/app/images
+      - OUTPUT_FOLDER=/app/processed
+
   isession:
     container_name: isession
-    image: ${DOCKER_REPOSITORY}/isession:latest
-    build:
-      context: ./isession
-      dockerfile: Dockerfile
+    image: ${DOCKER_REPOSITORY}/isession:${TAG}
     command: ['uv', 'run', 'ipython']
     volumes:
-      - ./image_processor/:/app/image_processor
+      - ./image_processor/pyproject.toml:/app/pyproject.toml
+      - ./image_processor/image_processor:/app/image_processor
       - isession_data:/app/.ipython/profile_default
       - ${PWD}/isession/startup:/app/.ipython/profile_default/startup
       - ${PWD}/images:/app/images
