@@ -12,95 +12,53 @@
 			"userGid": "1000",
 			"upgradePackages": "true"
 		},
-		"ghcr.io/devcontainers-contrib/features/neovim-apt-get:1": {},
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {
 			"moby": true,
 			"installDockerBuildx": true,
 			"version": "latest",
 			"dockerDashComposeVersion": "none"
 		},
-		"ghcr.io/devcontainers-contrib/features/pipenv:2": {
-			"version": "latest"
-		},
-		"ghcr.io/devcontainers-contrib/features/pre-commit:2": {
-			"version": "latest"
-		},
 		"ghcr.io/christophermacgown/devcontainer-features/direnv:1": {
 			"autoEnable": true,
 			"architecture": "amd64",
 			"version": "latest"
 		},
-		"ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {
-			"plugins": "ssh-agent npm",
-			"omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions https://github.com/unixorn/fzf-zsh-plugin https://github.com/Nyquase/vi-mode",
-			"username": "vscode"
-		},
 		"ghcr.io/devcontainers-contrib/features/black:2": {
 			"version": "latest"
 		},
-		"ghcr.io/devcontainers/features/python:1": {},
-		"ghcr.io/devcontainers/features/node:1": {
-			"nodeGypDependencies": true,
-			"version": "lts"
-		},
-		"ghcr.io/devcontainers/features/sshd:1": {
-			"version": "latest"
-		},
-		"ghcr.io/devcontainers-contrib/features/typescript:2": {
-			"version": "latest"
-		},
-		"ghcr.io/rio/features/chezmoi:1": {},
-		"ghcr.io/devcontainers-contrib/features/fzf:1": {
-			"version": "latest"
-		},
-		"ghcr.io/devcontainers-contrib/features/tmux-apt-get:1": {}
+		"ghcr.io/devcontainers/features/python:1": {}
 	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"vscodevim.vim",
 				"ms-python.pylint",
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"ms-python.black-formatter",
-				"rvest.vs-code-prettier-eslint",
 				"esbenp.prettier-vscode",
-				"ms-vscode.vscode-typescript-next",
-				"infeng.vscode-react-typescript",
-				"Gydunhn.typescript-essentials",
 				"usernamehw.errorlens",
 				"ms-azuretools.vscode-docker",
 				"streetsidesoftware.code-spell-checker",
 				"redhat.vscode-yaml",
 				"riccardoNovaglia.missinglineendoffile",
-				"eamodio.gitlens",
-				"njpwerner.autodocstring",
-				"ms-python.mypy-type-checker",
 				"foxundermoon.shell-format"
 			],
 			"settings": {
-				"terminal.integrated.defaultProfile.linux": "tmux",
+				"terminal.integrated.defaultProfile.linux": "zsh",
 				"editor.formatOnSave": true,
 				"editor.formatOnType": false,
 				"editor.formatOnPaste": true,
-				"editor.formatOnSaveMode": "file",
-				"files.autoSave": "onFocusChange",
-				"editor.codeActionsOnSave": [
-				"source.formatDocument",
-				"source.fixAll.eslint"
-				],
-				"[typescript][typescriptreact][javascript][javascriptreact]": {
-				"editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
-				"vs-code-prettier-eslint.prettierLast": false
-				}
+				"editor.formatOnSaveMode": "file"
 			}
 		}
 	},
-	"runArgs": ["--env-file", ".devcontainer/.env"],
-	// "initializeCommand": "find ~/.ssh/ -type f -exec grep -l 'PRIVATE' {} \\; | xargs ssh-add",
+	"runArgs": [
+		"--env-file",
+		".devcontainer/.env"
+	],
 	"mounts": [
-    	"source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind"
-  	],
+		"source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind"
+	],
 	"postCreateCommand": "/bin/sh /usr/src/post_create.sh",
 	"remoteUser": "vscode"
 }
