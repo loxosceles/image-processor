@@ -1,7 +1,7 @@
 services:
   image_processor:
     container_name: image_processor
-    image: ghcr.io/loxosceles/image_processor:1.0.0
+    image: ${DOCKER_REPOSITORY}/image_processor:${TAG}
     volumes:
       - ${PWD}/images:/app/images
       - ${PWD}/processed:/app/processed
