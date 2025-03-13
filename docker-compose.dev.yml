@@ -1,10 +1,11 @@
 services:
   image_processor:
     container_name: image_processor
-    image: ${DOCKER_REPOSITORY}/image_processor:${TAG}
+    build:
+      context: ./image_processor
+      dockerfile: Dockerfile
     volumes:
-      - ${PWD}/images:/app/images
-      - ${PWD}/processed:/app/processed
+      - ${PWD}/image_processor:/app
     environment:
       - INPUT_FOLDER=/app/images
       - OUTPUT_FOLDER=/app/processed
