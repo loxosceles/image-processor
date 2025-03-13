@@ -16,10 +16,9 @@ You can run the application without any setup by using the Docker image that is
 available on the Github Container Registry. However, if you want to build the
 image yourself, you can do so by configuring your own docker repository and
 running the `manage.sh build` command. See the `.env.template` file for the
-environment variables that need to be set. As for all `.template` files, just
-copy that file, remove the `.template` extension, and fill in the values. Use
-the `docker-compose.dev.yml` file to build the image locally and push it to your
-registry.
+environment variables that need to be set. As for all `.template` files in this
+repository, just copy that file, remove the `.template` extension, and fill in
+the values.
 
 ````bash
 
@@ -49,6 +48,9 @@ manage.sh dev --isession
 
 # Build a new image from the Dockerfile and push it to the Github Container Registry:
 manage.sh build
+
+# Run the tests
+manage.sh test
 ````
 
 ## Further Development
@@ -60,5 +62,6 @@ reproducible development environment. It leverages `chezmoi` to manage the
 user configuration file. Basically, you only need to set up your dotfiles here.
 Then chezmoi will do the rest. Look at this project to see how this works in detail:
 [devcontainer_template](https://github.com/loxosceles/devcontainer_config_template).
+Use the `docker-compose.dev.yml` file to build locally.
 
-Also, check out the [chezmoi documentation](https://chezmoi.io) which is a great project!
+Check out the [chezmoi documentation](https://chezmoi.io) which is a great project!
