@@ -10,7 +10,17 @@ run() {
     local input_folder="$1"
     local output_folder="$2"
     local task="$3"
-    docker compose run --rm image_processor "$input_folder" "$output_folder" --task "$task"
+    docker compose run --rm image_processor uv run python -m image_processor.cli "$input_folder" "$output_folder" --task "$task"
+}
+
+run_tests() {
+    echo "Running pytests in ${ENVIRONMENT} environment"
+
+    if [ "$ENVIRONMENT" = "dev" ]; then
+        docker compose -f docker-compose.dev.yml run --rm image_processor uv run pytest -vvv
+    else
+        docker compose run --rm image_processor uv run pytest -vvv
+    fi
 }
 
 build_and_push() {
@@ -179,7 +189,27 @@ parse_commandline_build() {
             exit 0
             ;;
         *)
-            _PRINT_HELP=yes die "FATAL ERROR: Got an unexpected argument '$1'" 1
+            exit 0
+            ;;
+        esac
+        shift
+    done
+}
+
+parse_commandline_test() {
+    while test $# -gt 0; do
+        _key="$1"
+        case "$_key" in
+        -h | --help)
+            print_help_build
+            exit 0
+            ;;
+        -h*)
+            print_help_build
+            exit 0
+            ;;
+        *)
+            exit 0
             ;;
         esac
         shift
@@ -209,7 +239,7 @@ parse_commandline_dev() {
     done
 }
 
-_check_mutually_exclusive_args "$@"
+# _check_mutually_exclusive_args "$@"
 
 if [ "$1" = "run" ]; then
     shift
@@ -217,6 +247,7 @@ if [ "$1" = "run" ]; then
     scope_args=("_arg_input" "_arg_output" "_arg_task")
     _check_run_args "${scope_args[@]}"
     run "$_arg_input" "$_arg_output" "$_arg_task"
+    exit 0
 
 elif [ "$1" = "build" ]; then
     shift
@@ -226,6 +257,7 @@ elif [ "$1" = "build" ]; then
         exit 1
     fi
     build_and_push
+    exit 0
 
 elif [ "$1" = "dev" ]; then
     shift
@@ -233,6 +265,17 @@ elif [ "$1" = "dev" ]; then
     scope_args=("_arg_isession")
     _check_run_args "${scope_args[@]}"
     isession
+    exit 0
+
+elif [ "$1" = "test" ]; then
+    shift
+    parse_commandline_test "$@"
+    if [ "$#" -ne 0 ]; then
+        echo "Error: 'test' does not take any additional arguments."
+        exit 1
+    fi
+    run_tests
+    exit 0
 
 else
     print_help
