@@ -72,11 +72,14 @@ def _extract_orientation(img: Image.Image) -> int:
         img: The image object to extract the orientation from.
 
     Returns:
-        int: The orientation value.
+        int: The orientation value (defaults to 1 if no EXIF data is found).
     """
-    exif_dict = piexif.load(img.info.get("exif", b""))
-    orientation = exif_dict.get("0th", {}).get(piexif.ImageIFD.Orientation, 1)
-    return orientation
+    exif_data = img.info.get("exif", b"")
+    if not exif_data:
+        return 1  # Default orientation if no EXIF data is present
+
+    exif_dict = piexif.load(exif_data)
+    return exif_dict.get("0th", {}).get(piexif.ImageIFD.Orientation, 1)
 
 
 def _update_orientation(
@@ -114,10 +117,12 @@ def rotate(image_path: Union[str, Path], output_path: Union[str, Path]) -> None:
 
         # Apply rotation based on EXIF orientation
         if orientation == 3:
-            print(f"{image_path}: Orientation is 3. Applying rotation of 180 degrees.")
+            print(
+                f"{image_path}: Orientation is 3. Applying rotation of 180 degrees.")
             rotated_img = img.rotate(180)
         elif orientation == 6:
-            print(f"{image_path}: Orientation is 6. Applying rotation of 270 degrees.")
+            print(
+                f"{image_path}: Orientation is 6. Applying rotation of 270 degrees.")
             rotated_img = img.rotate(270)
         elif orientation == 8:
             print(f"{image_path}: Orientation is 8. Applying rotation of 90 degrees.")
@@ -167,7 +172,8 @@ def process_images(
         for image_file in image_files:
             input_path = Path(image_folder) / image_file
             output_path = Path(output_folder) / image_file
-            jobs.append(executor.submit(process_function, input_path, output_path))
+            jobs.append(executor.submit(
+                process_function, input_path, output_path))
 
         for job in tqdm(as_completed(jobs), total=len(jobs), desc="Processing Images"):
             try:
@@ -179,7 +185,8 @@ def process_images(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Concurrent Image Processing")
     parser.add_argument("input_folder", help="Folder containing input images")
-    parser.add_argument("output_folder", help="Folder to save processed images")
+    parser.add_argument(
+        "output_folder", help="Folder to save processed images")
     parser.add_argument(
         "--task",
         choices=["rotate", "resize", "grayscale", "blur"],
@@ -196,4 +203,5 @@ if __name__ == "__main__":
         "blur": blur_image,
     }[args.task]
 
-    process_images(args.input_folder, args.output_folder, task_function)  # type: ignore
+    process_images(args.input_folder, args.output_folder,
+                   task_function)  # type: ignore
