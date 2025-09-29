@@ -10,7 +10,20 @@ run() {
     local input_folder="$1"
     local output_folder="$2"
     local task="$3"
-    docker compose run --rm image_processor uv run python -m image_processor.cli "$input_folder" "$output_folder" --task "$task"
+    local format="$4"
+    local quality="$5"
+    
+    local cmd="docker compose run --rm image_processor uv run python -m image_processor.cli \"$input_folder\" \"$output_folder\" --task \"$task\""
+    
+    if [ -n "$format" ]; then
+        cmd="$cmd --format \"$format\""
+    fi
+    
+    if [ -n "$quality" ]; then
+        cmd="$cmd --quality \"$quality\""
+    fi
+    
+    eval "$cmd"
 }
 
 run_tests() {
@@ -82,7 +95,7 @@ die() {
 }
 
 begins_with_short_option() {
-    local first_option all_short_options='ioth'
+    local first_option all_short_options='iotfqh'
     first_option="${1:0:1}"
     test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -92,6 +105,8 @@ print_help_run() {
     printf '\t%s\n' "-i, --input <arg>   Input folder (required)"
     printf '\t%s\n' "-o, --output <arg>  Output folder (required)"
     printf '\t%s\n' "-t, --task <arg>    Task to perform (required)"
+    printf '\t%s\n' "-f, --format <arg>  Output format: jpeg, webp, png (default: jpeg)"
+    printf '\t%s\n' "-q, --quality <arg> Compression quality 0-100 (default: 85 for JPEG, 80 for WebP)"
     printf '\t%s\n' "-h, --help          Prints help for the 'run' scope"
 }
 
@@ -159,6 +174,28 @@ parse_commandline_run() {
             ;;
         -t*)
             _arg_task="${_key##-t}"
+            ;;
+        -f | --format)
+            test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+            _arg_format="$2"
+            shift
+            ;;
+        --format=*)
+            _arg_format="${_key##--format=}"
+            ;;
+        -f*)
+            _arg_format="${_key##-f}"
+            ;;
+        -q | --quality)
+            test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+            _arg_quality="$2"
+            shift
+            ;;
+        --quality=*)
+            _arg_quality="${_key##--quality=}"
+            ;;
+        -q*)
+            _arg_quality="${_key##-q}"
             ;;
         -h | --help)
             print_help_run
@@ -246,7 +283,7 @@ if [ "$1" = "run" ]; then
     parse_commandline_run "$@"
     scope_args=("_arg_input" "_arg_output" "_arg_task")
     _check_run_args "${scope_args[@]}"
-    run "$_arg_input" "$_arg_output" "$_arg_task"
+    run "$_arg_input" "$_arg_output" "$_arg_task" "$_arg_format" "$_arg_quality"
     exit 0
 
 elif [ "$1" = "build" ]; then
