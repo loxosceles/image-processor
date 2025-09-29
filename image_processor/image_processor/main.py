@@ -1,18 +1,21 @@
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image, ImageFilter
 import argparse
 from tqdm import tqdm
 import piexif
+from .formats import save_with_format, ImageProcessingError, CorruptedFileError
 
-SUPPORTED_SUFFIXES = {".jpg", ".jpeg", ".png"}
+SUPPORTED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 def resize_image(
     image_path: Union[str, Path],
     output_path: Union[str, Path],
     size: tuple[int, int] = (128, 128),
+    format: str = "jpeg",
+    quality: Optional[int] = None,
 ) -> None:
     """
     Resize an image to the specified size and save it to the output path.
@@ -21,17 +24,25 @@ def resize_image(
         image_path: The path to the input image file.
         output_path: The path to save the resized image.
         size (optional): The desired size for the resized image. Defaults to (128, 128).
+        format (optional): Output format. Defaults to "jpeg".
+        quality (optional): Compression quality 0-100. Uses format defaults if None.
 
     Returns:
         None
     """
-    with Image.open(image_path) as img:
-        img = img.resize(size)
-        img.save(output_path)
+    try:
+        with Image.open(image_path) as img:
+            img = img.resize(size)
+            save_with_format(img, output_path, format, quality)
+    except Exception as e:
+        raise CorruptedFileError(f"Failed to process {image_path}: {e}")
 
 
 def grayscale_image(
-    image_path: Union[str, Path], output_path: Union[str, Path]
+    image_path: Union[str, Path],
+    output_path: Union[str, Path],
+    format: str = "jpeg",
+    quality: Optional[int] = None,
 ) -> None:
     """
     Converts an image to grayscale and saves the result.
@@ -39,29 +50,44 @@ def grayscale_image(
     Args:
         image_path: The path to the input image file.
         output_path: The path to save the grayscale image.
+        format (optional): Output format. Defaults to "jpeg".
+        quality (optional): Compression quality 0-100. Uses format defaults if None.
 
     Returns:
         None
     """
-    with Image.open(image_path) as img:
-        img = img.convert("L")
-        img.save(output_path)
+    try:
+        with Image.open(image_path) as img:
+            img = img.convert("L")
+            save_with_format(img, output_path, format, quality)
+    except Exception as e:
+        raise CorruptedFileError(f"Failed to process {image_path}: {e}")
 
 
-def blur_image(image_path: Union[str, Path], output_path: Union[str, Path]) -> None:
+def blur_image(
+    image_path: Union[str, Path],
+    output_path: Union[str, Path],
+    format: str = "jpeg",
+    quality: Optional[int] = None,
+) -> None:
     """
     Apply a blur filter to an image and save the result.
 
     Args:
         image_path: The path to the input image file.
         output_path: The path to save the blurred image file.
+        format (optional): Output format. Defaults to "jpeg".
+        quality (optional): Compression quality 0-100. Uses format defaults if None.
 
     Returns:
         None
     """
-    with Image.open(image_path) as img:
-        img = img.filter(ImageFilter.BLUR)
-        img.save(output_path)
+    try:
+        with Image.open(image_path) as img:
+            img = img.filter(ImageFilter.BLUR)
+            save_with_format(img, output_path, format, quality)
+    except Exception as e:
+        raise CorruptedFileError(f"Failed to process {image_path}: {e}")
 
 
 def _extract_orientation(img: Image.Image) -> int:
@@ -100,7 +126,12 @@ def _update_orientation(
     return img, exif_bytes
 
 
-def rotate(image_path: Union[str, Path], output_path: Union[str, Path]) -> None:
+def rotate(
+    image_path: Union[str, Path],
+    output_path: Union[str, Path],
+    format: str = "jpeg",
+    quality: Optional[int] = None,
+) -> None:
     """
     Rotates an image based on its EXIF orientation tag and preserves EXIF
     metadata.
@@ -108,40 +139,51 @@ def rotate(image_path: Union[str, Path], output_path: Union[str, Path]) -> None:
     Args:
         image_path: Path to the input image.
         output_path: Path to save the output image.
+        format (optional): Output format. Defaults to "jpeg".
+        quality (optional): Compression quality 0-100. Uses format defaults if None.
     """
-    rotated_img = None
+    try:
+        rotated_img = None
 
-    with Image.open(image_path) as img:
-        # Extract EXIF data
-        orientation = _extract_orientation(img)
+        with Image.open(image_path) as img:
+            # Extract EXIF data
+            orientation = _extract_orientation(img)
 
-        # Apply rotation based on EXIF orientation
-        if orientation == 3:
-            print(
-                f"{image_path}: Orientation is 3. Applying rotation of 180 degrees.")
-            rotated_img = img.rotate(180)
-        elif orientation == 6:
-            print(
-                f"{image_path}: Orientation is 6. Applying rotation of 270 degrees.")
-            rotated_img = img.rotate(270)
-        elif orientation == 8:
-            print(f"{image_path}: Orientation is 8. Applying rotation of 90 degrees.")
-            rotated_img = img.rotate(90)
-        else:
-            print(f"{image_path}: No rotation needed (orientation is 1).")
+            # Apply rotation based on EXIF orientation
+            if orientation == 3:
+                print(
+                    f"{image_path}: Orientation is 3. Applying rotation of 180 degrees.")
+                rotated_img = img.rotate(180)
+            elif orientation == 6:
+                print(
+                    f"{image_path}: Orientation is 6. Applying rotation of 270 degrees.")
+                rotated_img = img.rotate(270)
+            elif orientation == 8:
+                print(
+                    f"{image_path}: Orientation is 8. Applying rotation of 90 degrees.")
+                rotated_img = img.rotate(90)
+            else:
+                print(f"{image_path}: No rotation needed (orientation is 1).")
 
-        exif_updated_img, exif_bytes = _update_orientation(
-            rotated_img if rotated_img is not None else img
-        )
+            final_img = rotated_img if rotated_img is not None else img
 
-        # Save the rotated image with updated EXIF metadata
-        exif_updated_img.save(output_path, exif=exif_bytes)
+            # For JPEG with EXIF, preserve metadata
+            if format.lower() in ["jpeg", "jpg"] and img.info.get("exif"):
+                exif_updated_img, exif_bytes = _update_orientation(final_img)
+                exif_updated_img.save(
+                    output_path, format="JPEG", exif=exif_bytes, quality=quality or 85)
+            else:
+                save_with_format(final_img, output_path, format, quality)
+    except Exception as e:
+        raise CorruptedFileError(f"Failed to process {image_path}: {e}")
 
 
 def process_images(
     image_folder: Union[str, Path],
     output_folder: Union[str, Path],
-    process_function: Callable[[Union[str, Path], Union[str, Path]], None],
+    process_function: Callable,
+    format: str = "jpeg",
+    quality: Optional[int] = None,
 ) -> None:
     """
     Processes images in a given folder using a specified processing function and
@@ -151,11 +193,12 @@ def process_images(
         image_folder (str or Path): The path to the folder containing the input images.
         output_folder (str or Path): The path to the folder where the processed
             images will be saved.
-        process_function (Callable): A function that takes two arguments
-            (input_path, output_path) and processes the image.
+        process_function (Callable): A function that processes the image.
+        format (str): Output format for processed images.
+        quality (int): Compression quality 0-100.
 
-    Raises:
-        Exception: If there is an error processing any of the images, it will be caught and printed.
+    Returns:
+        None
     """
     output_path = Path(output_folder)
     if not output_path.exists():
@@ -167,19 +210,45 @@ def process_images(
         if f.suffix.lower() in SUPPORTED_SUFFIXES
     ]
 
+    if not image_files:
+        print(f"No supported images found in {image_folder}")
+        return
+
+    successful = 0
+    failed = 0
+    errors = []
+
     with ThreadPoolExecutor() as executor:
-        jobs: list = []
+        jobs = []
         for image_file in image_files:
             input_path = Path(image_folder) / image_file
-            output_path = Path(output_folder) / image_file
-            jobs.append(executor.submit(
-                process_function, input_path, output_path))
+            # Change extension based on output format
+            output_name = Path(image_file).stem + f".{format}"
+            output_file_path = Path(output_folder) / output_name
 
-        for job in tqdm(as_completed(jobs), total=len(jobs), desc="Processing Images"):
+            job = executor.submit(
+                process_function, input_path, output_file_path, format, quality
+            )
+            jobs.append((job, input_path))
+
+        for job, input_path in tqdm(jobs, desc="Processing Images"):
             try:
                 job.result()
+                successful += 1
             except Exception as e:
-                print(f"Error processing image: {e}")
+                failed += 1
+                errors.append(f"{input_path}: {e}")
+
+    # Print summary
+    total = successful + failed
+    print(
+        f"\nProcessing complete: {successful}/{total} images processed successfully")
+    if failed > 0:
+        print(f"Failed to process {failed} images:")
+        for error in errors[:5]:  # Show first 5 errors
+            print(f"  - {error}")
+        if len(errors) > 5:
+            print(f"  ... and {len(errors) - 5} more errors")
 
 
 if __name__ == "__main__":
@@ -193,6 +262,17 @@ if __name__ == "__main__":
         required=True,
         help="Image processing task",
     )
+    parser.add_argument(
+        "--format",
+        choices=["jpeg", "webp", "png"],
+        default="jpeg",
+        help="Output format (default: jpeg)",
+    )
+    parser.add_argument(
+        "--quality",
+        type=int,
+        help="Compression quality 0-100 (default: 85 for JPEG, 80 for WebP)",
+    )
 
     args = parser.parse_args()
 
@@ -203,5 +283,15 @@ if __name__ == "__main__":
         "blur": blur_image,
     }[args.task]
 
-    process_images(args.input_folder, args.output_folder,
-                   task_function)  # type: ignore
+    try:
+        process_images(
+            args.input_folder,
+            args.output_folder,
+            task_function,
+            args.format,
+            args.quality
+        )
+    except KeyboardInterrupt:
+        print("\nProcessing interrupted by user")
+    except Exception as e:
+        print(f"\nFatal error: {e}")
