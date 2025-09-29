@@ -2,7 +2,6 @@ from typing import Callable, Union, Optional
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image, ImageFilter
-import argparse
 from tqdm import tqdm
 import piexif
 from .formats import save_with_format, ImageProcessingError, CorruptedFileError
@@ -13,9 +12,9 @@ SUPPORTED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 def resize_image(
     image_path: Union[str, Path],
     output_path: Union[str, Path],
-    size: tuple[int, int] = (128, 128),
     format: str = "jpeg",
     quality: Optional[int] = None,
+    size: tuple[int, int] = (128, 128),
 ) -> None:
     """
     Resize an image to the specified size and save it to the output path.
@@ -23,9 +22,9 @@ def resize_image(
     Args:
         image_path: The path to the input image file.
         output_path: The path to save the resized image.
-        size (optional): The desired size for the resized image. Defaults to (128, 128).
         format (optional): Output format. Defaults to "jpeg".
         quality (optional): Compression quality 0-100. Uses format defaults if None.
+        size (optional): The desired size for the resized image. Defaults to (128, 128).
 
     Returns:
         None
@@ -251,47 +250,4 @@ def process_images(
             print(f"  ... and {len(errors) - 5} more errors")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Concurrent Image Processing")
-    parser.add_argument("input_folder", help="Folder containing input images")
-    parser.add_argument(
-        "output_folder", help="Folder to save processed images")
-    parser.add_argument(
-        "--task",
-        choices=["rotate", "resize", "grayscale", "blur"],
-        required=True,
-        help="Image processing task",
-    )
-    parser.add_argument(
-        "--format",
-        choices=["jpeg", "webp", "png"],
-        default="jpeg",
-        help="Output format (default: jpeg)",
-    )
-    parser.add_argument(
-        "--quality",
-        type=int,
-        help="Compression quality 0-100 (default: 85 for JPEG, 80 for WebP)",
-    )
 
-    args = parser.parse_args()
-
-    task_function = {
-        "rotate": rotate,
-        "resize": resize_image,
-        "grayscale": grayscale_image,
-        "blur": blur_image,
-    }[args.task]
-
-    try:
-        process_images(
-            args.input_folder,
-            args.output_folder,
-            task_function,
-            args.format,
-            args.quality
-        )
-    except KeyboardInterrupt:
-        print("\nProcessing interrupted by user")
-    except Exception as e:
-        print(f"\nFatal error: {e}")

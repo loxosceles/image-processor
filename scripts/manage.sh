@@ -48,6 +48,23 @@ isession() {
     docker compose run --rm -it isession
 }
 
+# Quick dev execution
+run_image_processor() {
+    cd image_processor
+    uv run python -m image_processor.cli "$@"
+}
+
+# Complete package build flow
+build_package() {
+    echo "Building package..."
+    cd image_processor
+    uv build
+    echo "Installing package..."
+    uv tool install dist/*.whl --force
+    echo "Package built and installed successfully!"
+    echo "You can now use: image-processor"
+}
+
 ### Helper functions
 ##
 #
@@ -121,18 +138,35 @@ print_help_build() {
     printf '\t%s\n' "-h, --help          Prints help for the 'build' scope"
 }
 
+print_help_image_processor() {
+    printf '%s\n' "  image_processor:"
+    printf '\t%s\n' "Direct arguments passed to CLI (no flags needed)"
+    printf '\t%s\n' "Example: manage.sh image_processor input output --task resize --format webp"
+    printf '\t%s\n' "-h, --help          Prints help for the 'image_processor' scope"
+}
+
+print_help_package() {
+    printf '%s\n' "  package:"
+    printf '\t%s\n' "Build and install the package (no additional arguments)"
+    printf '\t%s\n' "-h, --help          Prints help for the 'package' scope"
+}
+
 print_help() {
     printf '%s\n' "Usage: $0 <scope> [options]"
     printf '\n%s\n' "Scopes:"
-    printf '\t%s\n' "run    - Process images with input, output, and task arguments"
-    printf '\t%s\n' "build  - Build and push the Docker image (no additional arguments)"
-    printf '\t%s\n' "dev    - Start an interactive development session"
+    printf '\t%s\n' "run             - Process images with input, output, and task arguments"
+    printf '\t%s\n' "build           - Build and push the Docker image (no additional arguments)"
+    printf '\t%s\n' "dev             - Start an interactive development session"
+    printf '\t%s\n' "image_processor - Quick dev execution (pass CLI args directly)"
+    printf '\t%s\n' "package         - Build and install the complete package"
     printf '\n%s\n' "Scope-specific options:"
 
     # Interpolate scope-specific help texts
     print_help_run
     print_help_build
     print_help_dev
+    print_help_image_processor
+    print_help_package
 
     printf '\n%s\n' "Global options:"
     printf '\t%s\n' "-h, --help          Prints this help message"
@@ -312,6 +346,20 @@ elif [ "$1" = "test" ]; then
         exit 1
     fi
     run_tests
+    exit 0
+
+elif [ "$1" = "image_processor" ]; then
+    shift
+    run_image_processor "$@"
+    exit 0
+
+elif [ "$1" = "package" ]; then
+    shift
+    if [ "$#" -ne 0 ]; then
+        echo "Error: 'package' does not take any additional arguments."
+        exit 1
+    fi
+    build_package
     exit 0
 
 else

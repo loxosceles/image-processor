@@ -1,53 +1,47 @@
-import argparse
+import click
 from .main import (
     process_images, rotate, resize_image, grayscale_image, blur_image)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Process images with web optimization.")
-    parser.add_argument("input_folder", help="Folder containing input images")
-    parser.add_argument("output_folder", help="Folder to save processed images")
-    parser.add_argument(
-        "--task",
-        choices=["rotate", "resize", "grayscale", "blur"],
-        required=True,
-        help="Image processing task",
-    )
-    parser.add_argument(
-        "--format",
-        choices=["jpeg", "webp", "png"],
-        default="jpeg",
-        help="Output format (default: jpeg)",
-    )
-    parser.add_argument(
-        "--quality",
-        type=int,
-        help="Compression quality 0-100 (default: 85 for JPEG, 80 for WebP)",
-    )
+@click.command()
+@click.argument('input_folder')
+@click.argument('output_folder')
+@click.option('--task', 
+              type=click.Choice(['rotate', 'resize', 'grayscale', 'blur']), 
+              required=True,
+              help='Image processing task')
+@click.option('--format', 'output_format',
+              type=click.Choice(['jpeg', 'webp', 'png']), 
+              default='jpeg',
+              help='Output format (default: jpeg)')
+@click.option('--quality', 
+              type=int,
+              help='Compression quality 0-100 (default: 85 for JPEG, 80 for WebP)')
+def main(input_folder, output_folder, task, output_format, quality):
+    """Process images with web optimization.
     
-    args = parser.parse_args()
-
-    # Map the task to the corresponding function
+    INPUT_FOLDER   Folder containing input images
+    OUTPUT_FOLDER  Folder to save processed images
+    """
     task_function = {
         "rotate": rotate,
         "resize": resize_image,
         "grayscale": grayscale_image,
         "blur": blur_image,
-    }[args.task]
+    }[task]
 
-    # Process the images
     try:
         process_images(
-            args.input_folder, 
-            args.output_folder, 
+            input_folder, 
+            output_folder, 
             task_function,
-            args.format,
-            args.quality
+            output_format,
+            quality
         )
     except KeyboardInterrupt:
-        print("\nProcessing interrupted by user")
+        click.echo("\nProcessing interrupted by user", err=True)
     except Exception as e:
-        print(f"\nFatal error: {e}")
+        click.echo(f"\nFatal error: {e}", err=True)
 
 
 if __name__ == "__main__":
