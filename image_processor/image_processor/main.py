@@ -230,11 +230,13 @@ def process_images(
             )
             jobs.append((job, input_path))
 
-        for job, input_path in tqdm(jobs, desc="Processing Images"):
+        for job in tqdm(as_completed([j[0] for j in jobs]), total=len(jobs), desc="Processing Images"):
             try:
                 job.result()
                 successful += 1
             except Exception as e:
+                # Find the input_path for this job
+                input_path = next(path for j, path in jobs if j == job)
                 failed += 1
                 errors.append(f"{input_path}: {e}")
 
