@@ -2,13 +2,15 @@
 
 ## Description
 
-This is a simple image processor that can be used to apply filters to images. It operates on batches of images by applying the same filter to all images in the input folder. The filters that can be applied are:
+A web developer-focused image processor for batch optimization and format conversion. Designed to streamline common web development workflows like creating WebP images, responsive thumbnails, and optimized assets.
 
-- Grayscale
-- Rotate
-- Resize
-- Blur
-- ... more to come
+Supported operations:
+- **Resize** - Create thumbnails and responsive images
+- **Format conversion** - JPEG, WebP, PNG with quality control
+- **Grayscale** - Convert to monochrome
+- **Rotate** - Auto-correct orientation from EXIF data
+- **Blur** - Apply blur effects
+- **Web optimization** - Progressive JPEG, WebP compression
 
 ## Setup
 
@@ -20,7 +22,7 @@ environment variables that need to be set. As for all `.template` files in this
 repository, just copy that file, remove the `.template` extension, and fill in
 the values.
 
-````bash
+```bash
 
 ## Usage
 
@@ -29,39 +31,87 @@ The processor runs inside a Docker container, so the user needs to have Docker
 installed on their machine. For convenience, there is a `manage.sh` script that
 can be used to run the processor.
 
-Example:
+## Basic Usage
 
 ```bash
-# For these examples, I assume that you have added the scripts folder to the PATH, e.g., by running: `export PATH=${PWD}/scripts:$PATH` from the root of the project.
+# Add scripts to PATH for convenience
+export PATH=${PWD}/scripts:$PATH
 
-# First, run the help command to see the available options:
+# Basic image processing (defaults to JPEG output)
+manage.sh run -i images -o processed --task resize
+
+# Web optimization: Convert to WebP with quality control
+manage.sh run -i images -o web-ready --task resize --format webp --quality 80
+
+# High quality JPEG for print
+manage.sh run -i photos -o print --task resize --format jpeg --quality 95
+
+# Create grayscale thumbnails in WebP format
+manage.sh run -i gallery -o thumbnails --task grayscale --format webp --quality 75
+```
+
+## Web Developer Examples
+
+```bash
+# Convert product images to WebP for faster loading
+manage.sh run -i product-photos -o webp-catalog --task resize --format webp --quality 80
+
+# Create JPEG fallbacks for older browsers
+manage.sh run -i product-photos -o jpeg-fallback --task resize --format jpeg --quality 85
+
+# Optimize blog images with progressive JPEG
+manage.sh run -i blog-images -o optimized --task resize --format jpeg --quality 85
+
+# Batch convert PNG screenshots to compressed WebP
+manage.sh run -i screenshots -o compressed --task resize --format webp --quality 70
+```
+
+## Available Options
+
+- `--task`: `resize`, `grayscale`, `blur`, `rotate`
+- `--format`: `jpeg`, `webp`, `png` (default: jpeg)
+- `--quality`: 0-100 compression quality (default: 85 for JPEG, 80 for WebP)
+
+## Development Commands
+
+```bash
+# Get help
 manage.sh --help
 
-# To run the processor with the blur filter on the images in the `images` folder and save the processed images in the `processed` folder:
-manage.sh run -i images -o processed -t blur
-
-# Or, using the long options:
-manage.sh run --input images --output processed --filter blur
-
-# Drop into an interactive iPython session inside the container:
+# Interactive development session
 manage.sh dev --isession
 
-# Build a new image from the Dockerfile and push it to the Github Container Registry:
-manage.sh build
-
-# Run the tests
+# Run tests
 manage.sh test
-````
 
-## Further Development
+# Build and push Docker image
+manage.sh build
+```
 
-This is WIP. While the current implementation is only meant as a demo project, I
-might add more features in the future for it to become a more useful tool. I
-have provided a devcontainer configuration for VSCode, to quickly build a
-reproducible development environment. It leverages `chezmoi` to manage the
-user configuration file. Basically, you only need to set up your dotfiles here.
-Then chezmoi will do the rest. Look at this project to see how this works in detail:
-[devcontainer_template](https://github.com/loxosceles/devcontainer_config_template).
-Use the `docker-compose.dev.yml` file to build locally.
+## Features
 
-Check out the [chezmoi documentation](https://chezmoi.io) which is a great project!
+### ✅ Phase 1 (Current)
+- **WebP Support** - Modern format for 25-35% smaller file sizes
+- **Quality Control** - Fine-tune compression (0-100 scale)
+- **Progressive JPEG** - Better loading experience for web
+- **Robust Error Handling** - Continues processing on failures, detailed reporting
+- **Format Conversion** - JPEG ↔ WebP ↔ PNG with quality preservation
+
+### 🚧 Coming Soon (Phase 2)
+- **Responsive Image Sets** - Generate multiple sizes at once
+- **Web Presets** - One-command optimization for common scenarios
+- **Batch Operations** - Chain multiple filters in single command
+
+## Web Optimization Benefits
+
+- **Faster Loading**: WebP images are 25-35% smaller than JPEG
+- **Progressive Enhancement**: JPEG fallbacks for older browsers
+- **Batch Processing**: Process hundreds of images in seconds
+- **Quality Control**: Perfect balance between file size and visual quality
+- **Modern Formats**: Ready for responsive images and `<picture>` elements
+
+## Development
+
+This project uses a devcontainer configuration for VSCode with `chezmoi` for dotfile management. See [devcontainer_template](https://github.com/loxosceles/devcontainer_config_template) for details.
+
+Use `docker-compose.dev.yml` for local development.
