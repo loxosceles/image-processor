@@ -108,15 +108,14 @@ def _extract_orientation(img: Image.Image) -> int:
 
 
 def _update_orientation(
-    img: Image.Image, orientation: int = 1
+    img: Image.Image, orientation: int
 ) -> tuple[Image.Image, bytes]:
     """
-    Updates the orientation tag in the EXIF data dictionary to 1 (normal) or any
-    other value, if specified.
+    Updates the orientation tag in the EXIF data dictionary to the specified value.
 
     Args:
         img: The image object to update.
-        orientation: The orientation value to set. Defaults to 1.
+        orientation: The orientation value to set (required).
     """
     exif_dict = piexif.load(img.info.get("exif", b""))
     exif_dict["0th"][piexif.ImageIFD.Orientation] = orientation
@@ -168,7 +167,8 @@ def rotate(
 
             # For JPEG with EXIF, preserve metadata
             if format.lower() in ["jpeg", "jpg"] and img.info.get("exif"):
-                exif_updated_img, exif_bytes = _update_orientation(final_img)
+                exif_updated_img, exif_bytes = _update_orientation(
+                    final_img, 1)
                 exif_updated_img.save(
                     output_path, format="JPEG", exif=exif_bytes, quality=quality or 85)
             else:
@@ -248,6 +248,3 @@ def process_images(
             print(f"  - {error}")
         if len(errors) > 5:
             print(f"  ... and {len(errors) - 5} more errors")
-
-
-
