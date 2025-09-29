@@ -9,7 +9,8 @@ COPY post_create.sh chezmoi.toml /usr/src/
 RUN chmod +x /usr/src/post_create.sh
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends pip libzip-dev unzip  ranger curl  \
+    && apt-get -y install --no-install-recommends \
+    pip libzip-dev unzip tmux direnv ranger curl neovim \
     && apt-get clean
 
 COPY requirements.txt /usr/src/

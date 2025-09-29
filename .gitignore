@@ -8,3 +8,5 @@ processed/
 .env.*
 
 .DS_Store
+
+docs/planning/*
