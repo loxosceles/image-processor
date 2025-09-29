@@ -23,8 +23,10 @@ cmd_run_tests() {
 }
 
 cmd_build_and_push() {
-    echo $GITHUB_PAT | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin &&
-        cd image_processor &&
+    docker login ghcr.io -u $GITHUB_USERNAME --password-stdin <<EOF
+$GITHUB_PAT
+EOF
+    cd image_processor &&
         docker build -t image_processor . &&
         docker tag image_processor $DOCKER_REPOSITORY/image_processor:$TAG &&
         docker push $DOCKER_REPOSITORY/image_processor:$TAG
