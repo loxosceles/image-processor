@@ -10,8 +10,16 @@ RUN chmod +x /usr/src/post_create.sh
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
-    pip libzip-dev unzip tmux direnv ranger curl neovim \
+    pip libzip-dev unzip tmux direnv ranger curl neovim wget autoconf python3-docutils \
     && apt-get clean
+
+# Install argbash with proper library files
+RUN cd /tmp && \
+    wget https://github.com/matejak/argbash/archive/refs/tags/2.11.0.tar.gz -O argbash.tar.gz && \
+    tar -xzf argbash.tar.gz && \
+    cd argbash-2.11.0/resources && \
+    make install PREFIX=/usr/local && \
+    cd / && rm -rf /tmp/argbash*
 
 COPY requirements.txt /usr/src/
 RUN pip install -r /usr/src/requirements.txt
