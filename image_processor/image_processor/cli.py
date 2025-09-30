@@ -30,8 +30,9 @@ def main(input_folder, output_folder, task, output_format, quality):
         click.echo(f"Error: Output directory '{output_folder}' does not exist.", err=True)
         raise click.Abort()
     
-    # Validate output directory is empty
-    if any(Path(output_folder).iterdir()):
+    # Validate output directory is empty (ignore dot files)
+    non_hidden_files = [f for f in Path(output_folder).iterdir() if not f.name.startswith('.')]
+    if non_hidden_files:
         click.echo(f"Error: Output directory '{output_folder}' is not empty.", err=True)
         click.echo("Please use an empty directory to avoid overwriting files.", err=True)
         raise click.Abort()
