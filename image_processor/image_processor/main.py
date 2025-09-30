@@ -1,10 +1,13 @@
-from typing import Callable, Union, Optional
-from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from PIL import Image, ImageFilter
-from tqdm import tqdm
+from pathlib import Path
+from typing import Callable, Optional, Union
+
 import piexif
-from .formats import save_with_format, ImageProcessingError, CorruptedFileError
+from PIL import Image, ImageFilter
+from rich.console import Console
+from rich.progress import Progress
+
+from .formats import CorruptedFileError, save_with_format
 
 SUPPORTED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -150,15 +153,18 @@ def rotate(
             # Apply rotation based on EXIF orientation
             if orientation == 3:
                 print(
-                    f"{image_path}: Orientation is 3. Applying rotation of 180 degrees.")
+                    f"{image_path}: Orientation is 3. Applying rotation of 180 degrees."
+                )
                 rotated_img = img.rotate(180)
             elif orientation == 6:
                 print(
-                    f"{image_path}: Orientation is 6. Applying rotation of 270 degrees.")
+                    f"{image_path}: Orientation is 6. Applying rotation of 270 degrees."
+                )
                 rotated_img = img.rotate(270)
             elif orientation == 8:
                 print(
-                    f"{image_path}: Orientation is 8. Applying rotation of 90 degrees.")
+                    f"{image_path}: Orientation is 8. Applying rotation of 90 degrees."
+                )
                 rotated_img = img.rotate(90)
             else:
                 print(f"{image_path}: No rotation needed (orientation is 1).")
@@ -167,14 +173,52 @@ def rotate(
 
             # For JPEG with EXIF, preserve metadata
             if format.lower() in ["jpeg", "jpg"] and img.info.get("exif"):
-                exif_updated_img, exif_bytes = _update_orientation(
-                    final_img, 1)
+                exif_updated_img, exif_bytes = _update_orientation(final_img, 1)
                 exif_updated_img.save(
-                    output_path, format="JPEG", exif=exif_bytes, quality=quality or 85)
+                    output_path, format="JPEG", exif=exif_bytes, quality=quality or 85
+                )
             else:
                 save_with_format(final_img, output_path, format, quality)
     except Exception as e:
         raise CorruptedFileError(f"Failed to process {image_path}: {e}")
+
+
+def _print_processing_summary(
+    successful: int,
+    failed: int,
+    errors: list,
+    process_function: Callable,
+    format: str,
+    quality: Optional[int],
+) -> None:
+    """Print processing summary with Rich formatting."""
+    console = Console()
+    total = successful + failed
+    task_name = process_function.__name__.replace("_", " ").title()
+
+    console.print()  # Add spacing above summary
+
+    if failed == 0:
+        console.print("[green]✓ Processing complete![/green]")
+        console.print(f"[green]  • Task: {task_name}[/green]")
+        console.print(f"[green]  • Format: {format.upper()}[/green]")
+        if quality:
+            console.print(f"[green]  • Quality: {quality}%[/green]")
+        console.print(f"[green]  • Images processed: {successful}/{total}[/green]")
+    else:
+        console.print("[green]✓ Processing complete with some errors[/green]")
+        console.print(f"[green]  • Task: {task_name}[/green]")
+        console.print(f"[green]  • Format: {format.upper()}[/green]")
+        if quality:
+            console.print(f"[green]  • Quality: {quality}%[/green]")
+        console.print(
+            f"[green]  • Successfully processed: {successful}/{total}[/green]"
+        )
+        console.print(f"[red]✗ Failed to process {failed} images:[/red]")
+        for error in errors[:5]:  # Show first 5 errors
+            console.print(f"[red]  • {error}[/red]")
+        if len(errors) > 5:
+            console.print(f"[red]  ... and {len(errors) - 5} more errors[/red]")
 
 
 def process_images(
@@ -217,36 +261,34 @@ def process_images(
     failed = 0
     errors = []
 
-    with ThreadPoolExecutor() as executor:
-        jobs = []
-        for image_file in image_files:
-            input_path = Path(image_folder) / image_file
-            # Change extension based on output format
-            output_name = Path(image_file).stem + f".{format}"
-            output_file_path = Path(output_folder) / output_name
+    with Progress() as progress:
+        task = progress.add_task("[green]Processing Images...", total=len(image_files))
 
-            job = executor.submit(
-                process_function, input_path, output_file_path, format, quality
-            )
-            jobs.append((job, input_path))
+        with ThreadPoolExecutor() as executor:
+            jobs = []
+            for image_file in image_files:
+                input_path = Path(image_folder) / image_file
+                # Change extension based on output format
+                output_name = Path(image_file).stem + f".{format}"
+                output_file_path = Path(output_folder) / output_name
 
-        for job in tqdm(as_completed([j[0] for j in jobs]), total=len(jobs), desc="Processing Images"):
-            try:
-                job.result()
-                successful += 1
-            except Exception as e:
-                # Find the input_path for this job
-                input_path = next(path for j, path in jobs if j == job)
-                failed += 1
-                errors.append(f"{input_path}: {e}")
+                job = executor.submit(
+                    process_function, input_path, output_file_path, format, quality
+                )
+                jobs.append((job, input_path))
 
-    # Print summary
-    total = successful + failed
-    print(
-        f"\nProcessing complete: {successful}/{total} images processed successfully")
-    if failed > 0:
-        print(f"Failed to process {failed} images:")
-        for error in errors[:5]:  # Show first 5 errors
-            print(f"  - {error}")
-        if len(errors) > 5:
-            print(f"  ... and {len(errors) - 5} more errors")
+            for job in as_completed([j[0] for j in jobs]):
+                try:
+                    job.result()
+                    successful += 1
+                except Exception as e:
+                    # Find the input_path for this job
+                    input_path = next(path for j, path in jobs if j == job)
+                    failed += 1
+                    errors.append(f"{input_path}: {e}")
+
+                progress.advance(task)
+
+    _print_processing_summary(
+        successful, failed, errors, process_function, format, quality
+    )
