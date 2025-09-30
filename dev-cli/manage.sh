@@ -160,7 +160,7 @@ case "$_arg_command" in
         ;;
     "isession") cmd_isession ;;
     "test") cmd_run_tests ;;
-    "image_processor") cmd_run_image_processor "${_arg_leftovers@}" ;;
+    "image_processor") cmd_run_image_processor "${_arg_leftovers[@]}" ;;
     "package") cmd_build_package ;;
     *)
         echo "Unknown command: $_arg_command"
