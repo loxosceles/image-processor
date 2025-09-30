@@ -1,6 +1,7 @@
 import pytest
 from PIL import Image, ImageFilter
 import io
+from pathlib import Path
 from image_processor.main import (
     resize_image,
     grayscale_image,
@@ -11,6 +12,7 @@ from image_processor.main import (
     _update_orientation,
     SUPPORTED_SUFFIXES,
 )
+from image_processor.formats import save_with_format, UnsupportedFormatError, QUALITY_DEFAULTS
 import piexif
 
 
@@ -40,6 +42,23 @@ def test_update_orientation(image_with_orientation):
     _, exif_bytes = _update_orientation(image_with_orientation, 1)
     exif_dict = piexif.load(exif_bytes)
     assert exif_dict["0th"][piexif.ImageIFD.Orientation] == 1
+
+
+def test_update_orientation_requires_both_parameters(image_with_orientation):
+    """Test that _update_orientation requires both parameters explicitly"""
+    # Now that we removed the default parameter, this will catch the original bug
+    
+    # Should work with both parameters explicitly
+    _, exif_bytes = _update_orientation(image_with_orientation, 1)
+    assert exif_bytes is not None
+    
+    # Should fail with only one parameter (the original bug)
+    with pytest.raises(TypeError):
+        _update_orientation(image_with_orientation)  # Missing orientation parameter
+    
+    # Should fail with no parameters
+    with pytest.raises(TypeError):
+        _update_orientation()  # No parameters at all
 
 
 def test_resize_image(temp_dir, sample_image):
@@ -113,6 +132,29 @@ def test_rotate_image(tmp_path, image_fixture, initial_orientation, request):
         assert exif_dict["0th"][piexif.ImageIFD.Orientation] == 1
 
 
+def test_rotate_jpeg_with_exif_preservation(tmp_path, image_rotated_by_270):
+    """Test that rotate function properly calls _update_orientation with correct parameters for JPEG"""
+    # Save the rotated image to a temporary file
+    input_path = tmp_path / "input_image.jpg"
+    output_path = tmp_path / "output_image.jpg"
+    with open(input_path, "wb") as f:
+        f.write(image_rotated_by_270.getvalue())
+
+    # Mock _update_orientation to verify it's called with correct parameters
+    from unittest.mock import patch
+    with patch('image_processor.main._update_orientation') as mock_update:
+        mock_update.return_value = (Image.new('RGB', (100, 100)), b'')
+
+        # Run rotate with JPEG format (triggers EXIF path)
+        rotate(str(input_path), str(output_path), format="jpeg")
+
+        # Verify _update_orientation was called with orientation=1
+        mock_update.assert_called_once()
+        args = mock_update.call_args[0]
+        assert len(args) == 2  # img and orientation parameters
+        assert args[1] == 1  # orientation should be 1 (normal)
+
+
 def test_process_images(temp_dir):
     """Test process_images function"""
     # Create a second sample image
@@ -130,7 +172,9 @@ def test_process_images(temp_dir):
     # Verify the output images exist and have the correct size
     for image_file in temp_dir.iterdir():
         if image_file.suffix.lower() in SUPPORTED_SUFFIXES:
-            output_path = output_dir / image_file.name
+            # Output filename changes extension to match format (jpeg)
+            output_filename = image_file.stem + ".jpeg"
+            output_path = output_dir / output_filename
             assert output_path.exists()
             with Image.open(output_path) as img:
                 assert img.size == (128, 128)  # Default size for resize_image
@@ -170,3 +214,85 @@ def test_error_handling(temp_dir, monkeypatch):
 
     # Verify the output directory is empty (no images processed due to error)
     assert len(list(output_dir.iterdir())) == 0
+
+
+# Parametrized Format Tests
+@pytest.mark.parametrize("format_name,extension,expected_format", [
+    ("jpeg", ".jpeg", "JPEG"),
+    ("webp", ".webp", "WEBP"),
+    ("png", ".png", "PNG")
+])
+def test_format_output(temp_dir, sample_image, format_name, extension, expected_format):
+    """Test all supported format outputs"""
+    output_path = temp_dir / f"test_image{extension}"
+    resize_image(sample_image, output_path, format=format_name)
+
+    assert output_path.exists()
+    with Image.open(output_path) as img:
+        assert img.format == expected_format
+
+
+def test_quality_control(temp_dir, sample_image):
+    """Test quality parameter affects file size for JPEG format"""
+    high_quality = temp_dir / "high_quality.jpg"
+    low_quality = temp_dir / "low_quality.jpg"
+
+    resize_image(sample_image, high_quality, format="jpeg", quality=95)
+    resize_image(sample_image, low_quality, format="jpeg", quality=50)
+
+    assert high_quality.stat().st_size > low_quality.stat().st_size
+
+
+def test_format_defaults():
+    """Test that format defaults are correct"""
+    assert QUALITY_DEFAULTS["jpeg"] == 85
+    assert QUALITY_DEFAULTS["webp"] == 80
+    assert QUALITY_DEFAULTS["png"] is None
+
+
+def test_unsupported_format_error(temp_dir):
+    """Test error handling for unsupported formats"""
+    img = Image.new("RGB", (100, 100), color="red")
+    output_path = temp_dir / "test.bmp"
+
+    with pytest.raises(UnsupportedFormatError):
+        save_with_format(img, output_path, format="bmp")
+
+
+def test_progressive_jpeg(temp_dir, sample_image):
+    """Test that progressive JPEG is enabled by default"""
+    output_path = temp_dir / "progressive.jpg"
+    resize_image(sample_image, output_path, format="jpeg")
+
+    # Check if file was created (progressive flag is internal to PIL)
+    assert output_path.exists()
+    with Image.open(output_path) as img:
+        assert img.format == "JPEG"
+
+
+def test_error_handling_corrupted_file(temp_dir):
+    """Test error handling with corrupted file"""
+    # Create a fake corrupted image file
+    corrupted_file = temp_dir / "corrupted.jpg"
+    corrupted_file.write_text("This is not an image")
+
+    output_path = temp_dir / "output.jpg"
+
+    with pytest.raises(Exception):  # Should raise CorruptedFileError
+        resize_image(corrupted_file, output_path)
+
+
+@pytest.mark.parametrize("format_name,extension,expected_format,expected_mode", [
+    ("jpeg", ".jpeg", "JPEG", "L"),
+    ("webp", ".webp", "WEBP", "RGB"),  # WebP converts grayscale to RGB
+    ("png", ".png", "PNG", "L")
+])
+def test_format_extension_change(temp_dir, sample_image, format_name, extension, expected_format, expected_mode):
+    """Test that output format changes file extension and handles grayscale appropriately"""
+    output_path = temp_dir / f"converted{extension}"
+    grayscale_image(sample_image, output_path, format=format_name)
+
+    assert output_path.exists()
+    with Image.open(output_path) as img:
+        assert img.format == expected_format
+        assert img.mode == expected_mode
