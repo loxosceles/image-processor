@@ -23,11 +23,21 @@ cmd_run_tests() {
 }
 
 cmd_build_and_push() {
+    local no_cache="$1"
+    local cache_flag=""
+    
+    if [[ "$no_cache" == "--no-cache" ]]; then
+        echo "Building with no cache"
+        cache_flag="--no-cache"
+    else
+        echo "Building with cache (default)"
+    fi
+    
     docker login ghcr.io -u $GITHUB_USERNAME --password-stdin <<EOF
 $GITHUB_PAT
 EOF
     cd image_processor &&
-        docker build -t image_processor . &&
+        docker build $cache_flag -t image_processor . &&
         docker tag image_processor $DOCKER_REPOSITORY/image_processor:$TAG &&
         docker push $DOCKER_REPOSITORY/image_processor:$TAG
 }
