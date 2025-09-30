@@ -7,7 +7,7 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
         echo "USAGE: manage.sh <command> options"
         echo ""
         echo "COMMANDS:"
-        echo "  build          Build and push Docker image to registry"
+        echo "  build --no-cache Build and push Docker image to registry"
         echo "  help           Show this help message"
         echo "  isession       Start interactive development session"
         echo "  test           Run pytest suite with volume mounting"
@@ -136,14 +136,20 @@ assign_positional_args 1 "${_positionals[@]}"
 
 # Command routing
 case "$_arg_command" in
-    "build") cmd_build_and_push ;;
+    "build")
+        if [ "${_arg_leftovers[0]}" == "--no-cache" ]; then
+            cmd_build_and_push "--no-cache"
+        else
+            cmd_build_and_push
+        fi
+        ;;
     "help")
         echo "Development management script"
         echo ""
         echo "USAGE: manage.sh <command> options"
         echo ""
         echo "COMMANDS:"
-        echo "  build          Build and push Docker image to registry"
+        echo "  build --no-cache Build and push Docker image to registry"
         echo "  help           Show this help message"
         echo "  isession       Start interactive development session"
         echo "  test           Run pytest suite with volume mounting"
