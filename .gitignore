@@ -10,3 +10,9 @@ processed/
 .DS_Store
 
 docs/planning/*
+
+# Ignore mounted ai coding standards
+/docs/ai-dev-rules/*
+
+# Ignore mounted agents and tools 
+.github/agents/*
