@@ -15,6 +15,7 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
         echo "  isession       Start interactive development session"
         echo "  lint           Run ruff linter on all Python code"
         echo "  test           Run pytest suite with volume mounting"
+        echo "  test-api       Run API pytest tests"
         echo "  image_processor Run image processor with arguments"
         echo "  package        Build and install package locally"
         echo ""
@@ -162,6 +163,7 @@ case "$_arg_command" in
         echo "  isession       Start interactive development session"
         echo "  lint           Run ruff linter on all Python code"
         echo "  test           Run pytest suite with volume mounting"
+        echo "  test-api       Run API pytest tests"
         echo "  image_processor Run image processor with arguments"
         echo "  package        Build and install package locally"
         echo ""
@@ -181,6 +183,7 @@ case "$_arg_command" in
     "frontend") cmd_frontend ;;
     "dev") cmd_dev ;;
     "lint") cmd_lint ;;
+    "test-api") cmd_test_api ;;
     *)
         echo "Unknown command: $_arg_command"
         echo "Run 'manage.sh help' for usage"
