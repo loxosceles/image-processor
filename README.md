@@ -140,3 +140,28 @@ The project includes GitHub Actions for continuous integration:
 - **Automated Testing**: Tests run automatically on push/PR to `main` and `dev` branches
 - **Docker-based CI**: Uses the same Docker environment as local development
 - **Volume Mounting**: Fast test execution without rebuilding containers
+
+## Web GUI
+
+A browser-based interface for the image processor.
+
+### Quick Start
+
+```bash
+# Start both API and frontend
+./dev-cli/manage.sh dev
+
+# Or separately:
+./dev-cli/manage.sh api      # http://localhost:8000
+./dev-cli/manage.sh frontend # http://localhost:3000
+```
+
+### Features
+
+- Drag-and-drop file upload
+- Multiple file processing
+- Task selection: resize, grayscale, blur, rotate
+- Output format: WebP, JPEG, PNG
+- Quality control with format-specific defaults
+- Progress indication
+- Download as ZIP
