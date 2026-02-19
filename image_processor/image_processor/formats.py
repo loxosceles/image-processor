@@ -1,5 +1,6 @@
-from typing import Union, Optional
 from pathlib import Path
+from typing import Optional, Union
+
 from PIL import Image
 
 

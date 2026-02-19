@@ -1,7 +1,8 @@
-import click
 from pathlib import Path
-from .main import (
-    process_images, rotate, resize_image, grayscale_image, blur_image)
+
+import click
+
+from .main import blur_image, grayscale_image, process_images, resize_image, rotate
 
 
 @click.command()
@@ -29,7 +30,7 @@ def main(input_folder, output_folder, task, output_format, quality):
     if not Path(output_folder).exists():
         click.echo(f"Error: Output directory '{output_folder}' does not exist.", err=True)
         raise click.Abort()
-    
+
     # Validate output directory is empty (ignore dot files)
     non_hidden_files = [f for f in Path(output_folder).iterdir() if not f.name.startswith('.')]
     if non_hidden_files:
