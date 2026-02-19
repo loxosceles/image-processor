@@ -51,6 +51,7 @@ async def process_images(
     task: Literal["resize", "grayscale", "blur", "rotate"] = Form(...),
     format: Literal["jpeg", "webp", "png"] = Form("webp"),
     quality: int | None = Form(None),
+    size: int = Form(128),
 ) -> StreamingResponse:
     """Process uploaded images with specified task and format."""
     if not files:
@@ -83,15 +84,18 @@ async def process_images(
                     output_name = f"{input_path.stem}.{format}"
                     output_path = tmppath / output_name
 
-                    process_fn(input_path, output_path, format, quality)
+                    if task == "resize":
+                        process_fn(input_path, output_path, format, quality, (size, size))
+                    else:
+                        process_fn(input_path, output_path, format, quality)
 
                     zf.write(output_path, output_name)
                     processed_count += 1
 
-                except (CorruptedFileError, UnsupportedFormatError) as e:
-                    errors.append(f"{file.filename}: {e}")
-                except Exception as e:
-                    errors.append(f"{file.filename}: {e}")
+                except (CorruptedFileError, UnsupportedFormatError) as err:
+                    errors.append(f"{file.filename}: {err}")
+                except Exception as err:
+                    errors.append(f"{file.filename}: {err}")
 
     if processed_count == 0:
         raise HTTPException(

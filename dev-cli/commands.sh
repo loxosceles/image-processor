@@ -81,15 +81,21 @@ cmd_api() {
 }
 
 cmd_frontend() {
-    echo "Starting frontend dev server..."
-    cd frontend && pnpm install && pnpm dev
+    FRONTEND_PORT=$((RANDOM % 1000 + 4000))
+    echo "Starting frontend dev server on port $FRONTEND_PORT..."
+    cd frontend && pnpm install && pnpm dev --port $FRONTEND_PORT
 }
 
 cmd_dev() {
+    FRONTEND_PORT=$((RANDOM % 1000 + 4000))
     echo "Starting API and frontend in parallel..."
-    trap 'kill 0' EXIT
+    echo "API:      http://localhost:8000"
+    echo "Frontend: http://localhost:$FRONTEND_PORT"
+    echo ""
+    echo "Press Ctrl+C to stop both servers"
+    trap 'echo ""; echo "Shutting down..."; kill 0' EXIT INT TERM
     (cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) &
-    (cd frontend && pnpm install && pnpm dev) &
+    (cd frontend && pnpm install && pnpm dev --port $FRONTEND_PORT) &
     wait
 }
 

@@ -8,9 +8,10 @@ import { processImages, ProcessResult } from "@/lib/api";
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
-  const [task, setTask] = useState("grayscale");
+  const [task, setTask] = useState("resize");
   const [format, setFormat] = useState("webp");
   const [quality, setQuality] = useState(80);
+  const [resizeSize, setResizeSize] = useState(128);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProcessResult | null>(null);
@@ -29,6 +30,7 @@ export default function Home() {
         task,
         format,
         quality: format === "png" ? null : quality,
+        resizeSize: task === "resize" ? resizeSize : undefined,
       });
 
       const url = URL.createObjectURL(processResult.blob);
@@ -74,9 +76,11 @@ export default function Home() {
               task={task}
               format={format}
               quality={quality}
+              resizeSize={resizeSize}
               onTaskChange={setTask}
               onFormatChange={setFormat}
               onQualityChange={setQuality}
+              onResizeSizeChange={setResizeSize}
             />
           </div>
 

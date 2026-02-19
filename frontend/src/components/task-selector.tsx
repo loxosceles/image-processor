@@ -4,16 +4,27 @@ interface TaskSelectorProps {
   task: string;
   format: string;
   quality: number;
+  resizeSize: number;
   onTaskChange: (task: string) => void;
   onFormatChange: (format: string) => void;
   onQualityChange: (quality: number) => void;
+  onResizeSizeChange: (size: number) => void;
 }
 
 const TASKS = [
-  { value: "resize", label: "Resize (128×128)" },
+  { value: "resize", label: "Resize" },
   { value: "grayscale", label: "Grayscale" },
   { value: "blur", label: "Blur" },
   { value: "rotate", label: "Auto-Rotate (EXIF)" },
+];
+
+const RESIZE_SIZES = [
+  { value: 64, label: "64×64 (Favicon)" },
+  { value: 128, label: "128×128 (Thumbnail)" },
+  { value: 256, label: "256×256 (Small)" },
+  { value: 512, label: "512×512 (Medium)" },
+  { value: 1024, label: "1024×1024 (Large)" },
+  { value: 2048, label: "2048×2048 (HD)" },
 ];
 
 const FORMATS = [
@@ -26,9 +37,11 @@ export function TaskSelector({
   task,
   format,
   quality,
+  resizeSize,
   onTaskChange,
   onFormatChange,
   onQualityChange,
+  onResizeSizeChange,
 }: TaskSelectorProps) {
   const selectedFormat = FORMATS.find((f) => f.value === format);
   const isPng = format === "png";
@@ -54,6 +67,25 @@ export function TaskSelector({
           ))}
         </select>
       </div>
+
+      {task === "resize" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Size
+          </label>
+          <select
+            value={resizeSize}
+            onChange={(evt) => onResizeSizeChange(Number(evt.target.value))}
+            className={selectClasses}
+          >
+            {RESIZE_SIZES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">
