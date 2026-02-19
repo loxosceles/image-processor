@@ -12,6 +12,7 @@ export default function Home() {
   const [format, setFormat] = useState("webp");
   const [quality, setQuality] = useState(80);
   const [resizeSize, setResizeSize] = useState(128);
+  const [aspectRatio, setAspectRatio] = useState("original");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProcessResult | null>(null);
@@ -31,6 +32,7 @@ export default function Home() {
         format,
         quality: format === "png" ? null : quality,
         resizeSize: task === "resize" ? resizeSize : undefined,
+        aspectRatio: task === "resize" ? aspectRatio : undefined,
       });
 
       const url = URL.createObjectURL(processResult.blob);
@@ -77,10 +79,12 @@ export default function Home() {
               format={format}
               quality={quality}
               resizeSize={resizeSize}
+              aspectRatio={aspectRatio}
               onTaskChange={setTask}
               onFormatChange={setFormat}
               onQualityChange={setQuality}
               onResizeSizeChange={setResizeSize}
+              onAspectRatioChange={setAspectRatio}
             />
           </div>
 

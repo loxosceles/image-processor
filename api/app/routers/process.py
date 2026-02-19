@@ -52,6 +52,7 @@ async def process_images(
     format: Literal["jpeg", "webp", "png"] = Form("webp"),
     quality: int | None = Form(None),
     size: int = Form(128),
+    aspect_ratio: str = Form("original"),
 ) -> StreamingResponse:
     """Process uploaded images with specified task and format."""
     if not files:
@@ -85,7 +86,10 @@ async def process_images(
                     output_path = tmppath / output_name
 
                     if task == "resize":
-                        process_fn(input_path, output_path, format, quality, (size, size))
+                        process_fn(
+                            input_path, output_path, format, quality,
+                            (size, size), aspect_ratio
+                        )
                     else:
                         process_fn(input_path, output_path, format, quality)
 
