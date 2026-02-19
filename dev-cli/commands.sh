@@ -98,3 +98,8 @@ cmd_lint() {
     (cd image_processor && uv run ruff check image_processor/)
     (cd api && uv run ruff check app/)
 }
+
+cmd_test_api() {
+    echo "Running API tests..."
+    cd api && uv sync --all-extras && uv run pytest -v
+}
