@@ -18,3 +18,5 @@ docs/planning/*
 
 # Ignore mounted agents and tools 
 .github/agents/*
+.github/copilot-instructions.md
+.amazonq/
