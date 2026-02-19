@@ -9,4 +9,12 @@ processed/
 
 .DS_Store
 
+.pnpm-store/
+
 docs/planning/*
+
+# Ignore mounted ai coding standards
+/docs/ai-dev-rules/*
+
+# Ignore mounted agents and tools 
+.github/agents/*

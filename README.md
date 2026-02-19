@@ -2,66 +2,141 @@
 
 ## Description
 
-This is a simple image processor that can be used to apply filters to images. It operates on batches of images by applying the same filter to all images in the input folder. The filters that can be applied are:
+A web developer-focused image processor for batch optimization and format conversion. Designed to streamline common web development workflows like creating WebP images, responsive thumbnails, and optimized assets.
 
-- Grayscale
-- Rotate
-- Resize
-- Blur
-- ... more to come
+Supported operations:
 
-## Setup
+- **Resize** - Create thumbnails and responsive images
+- **Format conversion** - JPEG, WebP, PNG with quality control
+- **Grayscale** - Convert to monochrome
+- **Rotate** - Auto-correct orientation from EXIF data
+- **Blur** - Apply blur effects
+- **Web optimization** - Progressive JPEG, WebP compression
 
-You can run the application without any setup by using the Docker image that is
-available on the Github Container Registry. However, if you want to build the
-image yourself, you can do so by configuring your own docker repository and
-running the `manage.sh build` command. See the `.env.template` file for the
-environment variables that need to be set. As for all `.template` files in this
-repository, just copy that file, remove the `.template` extension, and fill in
-the values.
+## Installation
 
-````bash
+### For Users
+
+```bash
+# Install with uv (recommended)
+cd image_processor
+uv sync
+
+# Or install with pip
+pip install -e .
+```
+
+### For Developers
+
+Use the Docker setup with `manage.sh` for development, building, and testing.
 
 ## Usage
 
-The processor can be run from the command line and the user can specify the input folder, output folder, filter to apply and the filter parameters.
-The processor runs inside a Docker container, so the user needs to have Docker
-installed on their machine. For convenience, there is a `manage.sh` script that
-can be used to run the processor.
+The image processor features a [Click-based CLI](https://click.palletsprojects.com/) for easy command-line usage.
 
-Example:
+### Get Help
 
 ```bash
-# For these examples, I assume that you have added the scripts folder to the PATH, e.g., by running: `export PATH=${PWD}/scripts:$PATH` from the root of the project.
+# Beautiful help output
+image-processor --help
 
-# First, run the help command to see the available options:
-manage.sh --help
+# Or during development
+uv run python -m image_processor.cli --help
+```
 
-# To run the processor with the blur filter on the images in the `images` folder and save the processed images in the `processed` folder:
-manage.sh run -i images -o processed -t blur
+### Basic Usage
 
-# Or, using the long options:
-manage.sh run --input images --output processed --filter blur
+```bash
+# Basic image processing
+image-processor <input-dir> --output <output-dir> --task resize
 
-# Drop into an interactive iPython session inside the container:
+# Web optimization: Convert to WebP with quality control
+image-processor <input-dir> --output <output-dir> --task resize --format webp --quality 80
+
+# High quality JPEG for print
+image-processor <input-dir> --output <output-dir> --task resize --format jpeg --quality 95
+
+# Create grayscale thumbnails in WebP format
+image-processor <input-dir> --output <output-dir> --task grayscale --format webp --quality 75
+```
+
+### Web Developer Examples
+
+```bash
+# Convert images to WebP for faster loading
+image-processor <input-dir> --output <output-dir> --task resize --format webp --quality 80
+
+# Create JPEG fallbacks for older browsers
+image-processor <input-dir> --output <output-dir> --task resize --format jpeg --quality 85
+
+# Optimize images with progressive JPEG
+image-processor <input-dir> --output <output-dir> --task resize --format jpeg --quality 85
+
+# Batch convert to compressed WebP
+image-processor <input-dir> --output <output-dir> --task resize --format webp --quality 70
+```
+
+## Available Options
+
+- `--output`: Output directory (required, must exist and be empty)
+- `--task`: `resize`, `grayscale`, `blur`, `rotate` (required)
+- `--format`: `jpeg`, `webp`, `png` (default: jpeg)
+- `--quality`: 0-100 compression quality (default: 85 for JPEG, 80 for WebP)
+
+## Important Requirements
+
+- **Output directory must exist and be empty**: Prevents accidental file overwrites
+- **No automatic directory creation**: Ensures intentional output placement
+
+## Development
+
+This project uses a devcontainer configuration for VSCode with `chezmoi` for dotfile management. See [devcontainer_template](https://github.com/loxosceles/devcontainer_config_template) for details.
+
+### Development Commands (manage.sh)
+
+The `manage.sh` script is for **development only** and handles development workflows:
+
+```bash
+# Quick development (uses new --output interface)
+manage.sh image_processor <input-dir> --output <output-dir> --task resize --format webp
+
+# Build and install complete package
+manage.sh package
+
+# Interactive development session
 manage.sh dev --isession
 
-# Build a new image from the Dockerfile and push it to the Github Container Registry:
+# Run tests
+manage.sh test
+
+# Build and push Docker image
 manage.sh build
 
-# Run the tests
+# Get help
+manage.sh --help
+```
+
+### Development Workflow
+
+```bash
+# Quick development (instant changes)
+manage.sh image_processor <input-dir> --output <output-dir> --task resize --format webp
+
+# Run tests (uses volume mounting for instant feedback)
 manage.sh test
-````
 
-## Further Development
+# Test final package
+manage.sh package
+image-processor <input-dir> --output <output-dir> --task resize --format webp
 
-This is WIP. While the current implementation is only meant as a demo project, I
-might add more features in the future for it to become a more useful tool. I
-have provided a devcontainer configuration for VSCode, to quickly build a
-reproducible development environment. It leverages `chezmoi` to manage the
-user configuration file. Basically, you only need to set up your dotfiles here.
-Then chezmoi will do the rest. Look at this project to see how this works in detail:
-[devcontainer_template](https://github.com/loxosceles/devcontainer_config_template).
-Use the `docker-compose.dev.yml` file to build locally.
+# Run tests locally without Docker
+uv run pytest
+```
 
-Check out the [chezmoi documentation](https://chezmoi.io) which is a great project!
+## CI/CD
+
+The project includes GitHub Actions for continuous integration:
+
+- **Automated Testing**: Tests run automatically on push/PR to `main` and `dev` branches
+- **Docker-based CI**: Uses the same Docker environment as local development
+- **Volume Mounting**: Fast test execution without rebuilding containers
