@@ -11,6 +11,7 @@ interface FileDropzoneProps {
 
 export function FileDropzone({ files, onFilesChange }: FileDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [showAllFiles, setShowAllFiles] = useState(false);
 
   const handleDrop = (evt: React.DragEvent) => {
     evt.preventDefault();
@@ -66,23 +67,45 @@ export function FileDropzone({ files, onFilesChange }: FileDropzoneProps) {
       </div>
 
       {files.length > 0 && (
-        <ul className="space-y-2">
-          {files.map((file, index) => (
-            <li
-              key={`${file.name}-${index}`}
-              className="flex items-center justify-between bg-[#1f1f1f] border border-[#303030] rounded px-3 py-2"
-            >
-              <span className="text-sm text-gray-300 truncate">{file.name}</span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm text-gray-400">
+            <span>
+              {files.length} file{files.length !== 1 ? 's' : ''} selected
+            </span>
+            {files.length > 4 && (
               <button
                 type="button"
-                onClick={() => removeFile(index)}
-                className="text-gray-500 hover:text-red-400 ml-2"
+                onClick={() => setShowAllFiles(!showAllFiles)}
+                className="text-blue-400 hover:text-blue-300"
               >
-                ✕
+                {showAllFiles ? 'Show less' : `Show all ${files.length} files`}
               </button>
-            </li>
-          ))}
-        </ul>
+            )}
+          </div>
+          
+          <ul className="space-y-2">
+            {(showAllFiles ? files : files.slice(0, 4)).map((file, index) => (
+              <li
+                key={`${file.name}-${index}`}
+                className="flex items-center justify-between bg-[#1f1f1f] border border-[#303030] rounded px-3 py-2"
+              >
+                <span className="text-sm text-gray-300 truncate">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="text-gray-500 hover:text-red-400 ml-2"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+            {!showAllFiles && files.length > 4 && (
+              <li className="text-center py-2 text-gray-500 text-sm">
+                ... and {files.length - 4} more files
+              </li>
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );
