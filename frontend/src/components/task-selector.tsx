@@ -4,16 +4,38 @@ interface TaskSelectorProps {
   task: string;
   format: string;
   quality: number;
+  resizeSize: number;
+  aspectRatio: string;
   onTaskChange: (task: string) => void;
   onFormatChange: (format: string) => void;
   onQualityChange: (quality: number) => void;
+  onResizeSizeChange: (size: number) => void;
+  onAspectRatioChange: (ratio: string) => void;
 }
 
 const TASKS = [
-  { value: "resize", label: "Resize (128×128)" },
+  { value: "resize", label: "Resize" },
   { value: "grayscale", label: "Grayscale" },
   { value: "blur", label: "Blur" },
   { value: "rotate", label: "Auto-Rotate (EXIF)" },
+];
+
+const RESIZE_SIZES = [
+  { value: 64, label: "64px (Favicon)" },
+  { value: 128, label: "128px (Thumbnail)" },
+  { value: 256, label: "256px (Small)" },
+  { value: 512, label: "512px (Medium)" },
+  { value: 1024, label: "1024px (Large)" },
+  { value: 2048, label: "2048px (HD)" },
+];
+
+const ASPECT_RATIOS = [
+  { value: "original", label: "Original" },
+  { value: "1:1", label: "Square (1:1)" },
+  { value: "4:3", label: "4:3" },
+  { value: "3:4", label: "3:4 (Portrait)" },
+  { value: "16:9", label: "16:9 (Widescreen)" },
+  { value: "9:16", label: "9:16 (Vertical)" },
 ];
 
 const FORMATS = [
@@ -26,9 +48,13 @@ export function TaskSelector({
   task,
   format,
   quality,
+  resizeSize,
+  aspectRatio,
   onTaskChange,
   onFormatChange,
   onQualityChange,
+  onResizeSizeChange,
+  onAspectRatioChange,
 }: TaskSelectorProps) {
   const selectedFormat = FORMATS.find((f) => f.value === format);
   const isPng = format === "png";
@@ -54,6 +80,44 @@ export function TaskSelector({
           ))}
         </select>
       </div>
+
+      {task === "resize" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Max Size
+          </label>
+          <select
+            value={resizeSize}
+            onChange={(evt) => onResizeSizeChange(Number(evt.target.value))}
+            className={selectClasses}
+          >
+            {RESIZE_SIZES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {task === "resize" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Aspect Ratio
+          </label>
+          <select
+            value={aspectRatio}
+            onChange={(evt) => onAspectRatioChange(evt.target.value)}
+            className={selectClasses}
+          >
+            {ASPECT_RATIOS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">

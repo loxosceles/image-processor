@@ -9,6 +9,8 @@ export interface ProcessOptions {
   task: string;
   format: string;
   quality: number | null;
+  resizeSize?: number;
+  aspectRatio?: string;
 }
 
 export interface ProcessResult {
@@ -27,6 +29,12 @@ export async function processImages(
   formData.append("format", options.format);
   if (options.quality !== null) {
     formData.append("quality", options.quality.toString());
+  }
+  if (options.resizeSize) {
+    formData.append("size", options.resizeSize.toString());
+  }
+  if (options.aspectRatio) {
+    formData.append("aspect_ratio", options.aspectRatio);
   }
 
   const response = await fetch(`${API_URL}/api/process`, {

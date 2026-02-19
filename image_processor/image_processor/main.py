@@ -18,26 +18,59 @@ def resize_image(
     format: str = "jpeg",
     quality: Optional[int] = None,
     size: tuple[int, int] = (128, 128),
+    aspect_ratio: str = "original",
 ) -> None:
     """
-    Resize an image to the specified size and save it to the output path.
+    Resize an image to fit within the specified size while preserving aspect ratio.
 
     Args:
         image_path: The path to the input image file.
         output_path: The path to save the resized image.
         format (optional): Output format. Defaults to "jpeg".
         quality (optional): Compression quality 0-100. Uses format defaults if None.
-        size (optional): The desired size for the resized image. Defaults to (128, 128).
+        size (optional): Maximum dimensions for the resized image. Defaults to (128, 128).
+        aspect_ratio (optional): Target aspect ratio. Options: "original", "1:1", "4:3",
+            "3:4", "16:9", "9:16". Defaults to "original".
 
     Returns:
         None
     """
     try:
         with Image.open(image_path) as img:
-            img = img.resize(size)
+            if aspect_ratio != "original":
+                img = _crop_to_aspect_ratio(img, aspect_ratio)
+            img.thumbnail(size, Image.Resampling.LANCZOS)
             save_with_format(img, output_path, format, quality)
-    except Exception as e:
-        raise CorruptedFileError(f"Failed to process {image_path}: {e}")
+    except Exception as err:
+        raise CorruptedFileError(f"Failed to process {image_path}: {err}")
+
+
+def _crop_to_aspect_ratio(img: Image.Image, aspect_ratio: str) -> Image.Image:
+    """Crop image to target aspect ratio from center."""
+    ratios = {
+        "1:1": (1, 1),
+        "4:3": (4, 3),
+        "3:4": (3, 4),
+        "16:9": (16, 9),
+        "9:16": (9, 16),
+    }
+    if aspect_ratio not in ratios:
+        return img
+
+    target_w, target_h = ratios[aspect_ratio]
+    img_w, img_h = img.size
+
+    target_ratio = target_w / target_h
+    img_ratio = img_w / img_h
+
+    if img_ratio > target_ratio:
+        new_w = int(img_h * target_ratio)
+        left = (img_w - new_w) // 2
+        return img.crop((left, 0, left + new_w, img_h))
+    else:
+        new_h = int(img_w / target_ratio)
+        top = (img_h - new_h) // 2
+        return img.crop((0, top, img_w, top + new_h))
 
 
 def grayscale_image(

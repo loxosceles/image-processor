@@ -3,15 +3,19 @@
 import { useState } from "react";
 import { FileDropzone } from "@/components/file-dropzone";
 import { TaskSelector } from "@/components/task-selector";
-import { processImages } from "@/lib/api";
+import { ProgressDisplay } from "@/components/progress-display";
+import { processImages, ProcessResult } from "@/lib/api";
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
-  const [task, setTask] = useState("grayscale");
+  const [task, setTask] = useState("resize");
   const [format, setFormat] = useState("webp");
   const [quality, setQuality] = useState(80);
+  const [resizeSize, setResizeSize] = useState(128);
+  const [aspectRatio, setAspectRatio] = useState("original");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ProcessResult | null>(null);
 
   const handleSubmit = async (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -19,16 +23,19 @@ export default function Home() {
 
     setIsProcessing(true);
     setError(null);
+    setResult(null);
 
     try {
-      const result = await processImages({
+      const processResult = await processImages({
         files,
         task,
         format,
         quality: format === "png" ? null : quality,
+        resizeSize: task === "resize" ? resizeSize : undefined,
+        aspectRatio: task === "resize" ? aspectRatio : undefined,
       });
 
-      const url = URL.createObjectURL(result.blob);
+      const url = URL.createObjectURL(processResult.blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = "processed.zip";
@@ -36,6 +43,8 @@ export default function Home() {
       URL.revokeObjectURL(url);
 
       setFiles([]);
+      setResult(processResult);
+      setTimeout(() => setResult(null), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Processing failed");
     } finally {
@@ -69,11 +78,27 @@ export default function Home() {
               task={task}
               format={format}
               quality={quality}
+              resizeSize={resizeSize}
+              aspectRatio={aspectRatio}
               onTaskChange={setTask}
               onFormatChange={setFormat}
               onQualityChange={setQuality}
+              onResizeSizeChange={setResizeSize}
+              onAspectRatioChange={setAspectRatio}
             />
           </div>
+
+          <ProgressDisplay isProcessing={isProcessing} fileCount={files.length} />
+
+          {result && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+              <p className="font-medium text-green-300">✓ Processing complete!</p>
+              <p className="text-sm text-green-400/80 mt-1">
+                {result.processedCount} image{result.processedCount !== 1 ? "s" : ""} processed
+                {result.errorCount > 0 && ` (${result.errorCount} failed)`}
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
