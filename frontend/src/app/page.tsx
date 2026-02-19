@@ -13,8 +13,8 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (evt: React.FormEvent) => {
+    evt.preventDefault();
     if (files.length === 0) return;
 
     setIsProcessing(true);

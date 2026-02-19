@@ -44,7 +44,7 @@ export function TaskSelector({
         </label>
         <select
           value={task}
-          onChange={(e) => onTaskChange(e.target.value)}
+          onChange={(evt) => onTaskChange(evt.target.value)}
           className={selectClasses}
         >
           {TASKS.map((t) => (
@@ -61,8 +61,8 @@ export function TaskSelector({
         </label>
         <select
           value={format}
-          onChange={(e) => {
-            const newFormat = e.target.value;
+          onChange={(evt) => {
+            const newFormat = evt.target.value;
             onFormatChange(newFormat);
             const fmt = FORMATS.find((f) => f.value === newFormat);
             if (fmt?.defaultQuality) {
@@ -88,7 +88,7 @@ export function TaskSelector({
           min="10"
           max="100"
           value={quality}
-          onChange={(e) => onQualityChange(Number(e.target.value))}
+          onChange={(evt) => onQualityChange(Number(evt.target.value))}
           disabled={isPng}
           className="w-full accent-blue-500 disabled:opacity-50"
         />

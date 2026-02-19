@@ -12,18 +12,18 @@ interface FileDropzoneProps {
 export function FileDropzone({ files, onFilesChange }: FileDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDrop = (evt: React.DragEvent) => {
+    evt.preventDefault();
     setIsDragging(false);
-    const droppedFiles = Array.from(e.dataTransfer.files).filter((f) =>
+    const droppedFiles = Array.from(evt.dataTransfer.files).filter((f) =>
       SUPPORTED_TYPES.includes(f.type)
     );
     onFilesChange([...files, ...droppedFiles]);
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files).filter((f) =>
+  const handleFileInput = (evt: React.ChangeEvent<HTMLInputElement>) => {
+    if (evt.target.files) {
+      const selectedFiles = Array.from(evt.target.files).filter((f) =>
         SUPPORTED_TYPES.includes(f.type)
       );
       onFilesChange([...files, ...selectedFiles]);
@@ -37,8 +37,8 @@ export function FileDropzone({ files, onFilesChange }: FileDropzoneProps) {
   return (
     <div className="space-y-4">
       <div
-        onDragOver={(e) => {
-          e.preventDefault();
+        onDragOver={(evt) => {
+          evt.preventDefault();
           setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
