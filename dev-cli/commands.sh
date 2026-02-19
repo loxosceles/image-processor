@@ -23,6 +23,13 @@ cmd_run_tests() {
 }
 
 cmd_build_and_push() {
+    # Validate required environment variables
+    if [ -z "$DOCKER_REPOSITORY" ] || [ -z "$TAG" ] || [ -z "$API_PORT" ] || [ -z "$FRONTEND_PORT" ] || [ -z "$API_URL" ]; then
+        echo "Error: Missing required environment variables. Make sure .env is properly configured."
+        echo "Required: DOCKER_REPOSITORY, TAG, API_PORT, FRONTEND_PORT, API_URL"
+        exit 1
+    fi
+    
     local no_cache="$1"
     local cache_flag=""
     
@@ -33,13 +40,24 @@ cmd_build_and_push() {
         echo "Building with cache (default)"
     fi
     
+    # Build all images first (without login)
+    docker build $cache_flag -t image_processor ./image_processor &&
+        docker tag image_processor $DOCKER_REPOSITORY/image_processor:$TAG
+
+    docker build $cache_flag --build-arg API_PORT=$API_PORT -f api/Dockerfile -t image_processor_api . &&
+        docker tag image_processor_api $DOCKER_REPOSITORY/image_processor_api:$TAG
+
+    docker build $cache_flag --build-arg FRONTEND_PORT=$FRONTEND_PORT --build-arg API_URL=$API_URL -f frontend/Dockerfile -t image_processor_frontend . &&
+        docker tag image_processor_frontend $DOCKER_REPOSITORY/image_processor_frontend:$TAG
+
+    # Login and push after building
     docker login ghcr.io -u $GITHUB_USERNAME --password-stdin <<EOF
 $GITHUB_PAT
 EOF
-    cd image_processor &&
-        docker build $cache_flag -t image_processor . &&
-        docker tag image_processor $DOCKER_REPOSITORY/image_processor:$TAG &&
-        docker push $DOCKER_REPOSITORY/image_processor:$TAG
+    
+    docker push $DOCKER_REPOSITORY/image_processor:$TAG
+    docker push $DOCKER_REPOSITORY/image_processor_api:$TAG
+    docker push $DOCKER_REPOSITORY/image_processor_frontend:$TAG
 }
 
 cmd_isession() {
@@ -70,67 +88,37 @@ cmd_build_package() {
     cd image_processor
     uv build
     echo "Installing package..."
-    uv tool install dist/*.whl --force
+    uv pip install dist/*.whl --force-reinstall
     echo "Package built and installed successfully!"
     echo "You can now use: image-processor"
 }
 
+cmd_dev() {
+    echo "Starting DEVELOPMENT servers..."
+    docker compose -f docker-compose.dev.yml up --build
+}
+
+cmd_start() {
+    echo "Starting PRODUCTION servers..."
+    docker compose up
+}
+
+cmd_stop() {
+    echo "Stopping all image processor servers..."
+    docker compose -f docker-compose.dev.yml down 2>/dev/null || true
+    docker compose down 2>/dev/null || true
+    echo "All servers stopped"
+}
+
 cmd_api() {
-    local api_port="${API_PORT:-7432}"
-    echo "Starting API server on port $api_port..."
-    cd api && uv sync && uv run gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind "0.0.0.0:$api_port"
+    echo "Starting API server only..."
+    docker compose -f docker-compose.dev.yml up --build api
 }
 
 cmd_frontend() {
-    local api_port="${API_PORT:-7432}"
-    local frontend_port="${FRONTEND_PORT:-7433}"
-    echo "Starting frontend dev server on port $frontend_port..."
-    cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && pnpm install && pnpm dev --port "$frontend_port"
+    echo "Starting frontend server only..."
+    docker compose -f docker-compose.dev.yml up --build frontend
 }
-
-cmd_dev() {
-    # Load ports from .env
-    local api_port="${API_PORT:-7432}"
-    local frontend_port="${FRONTEND_PORT:-7433}"
-    
-    # Check if ports are in use
-    if lsof -i ":$api_port" >/dev/null 2>&1; then
-        echo "Error: Port $api_port is already in use. Stop the existing process or change API_PORT in .env"
-        exit 1
-    fi
-    
-    if lsof -i ":$frontend_port" >/dev/null 2>&1; then
-        echo "Error: Port $frontend_port is already in use. Stop the existing process or change FRONTEND_PORT in .env"
-        exit 1
-    fi
-    
-    echo "Starting DEVELOPMENT servers..."
-    echo "API:      http://localhost:$api_port (uvicorn with hot reload)"
-    echo "Frontend: http://localhost:$frontend_port (Next.js dev server)"
-    echo ""
-    echo "Press Ctrl+C to stop both servers"
-    
-    # Proper cleanup with flag to prevent multiple executions
-    cleanup_done=false
-    cleanup() {
-        if [ "$cleanup_done" = true ]; then
-            return
-        fi
-        cleanup_done=true
-        echo ""
-        echo "Shutting down..."
-        kill 0 2>/dev/null
-        exit 0
-    }
-    trap cleanup EXIT INT TERM
-    
-    # Start DEVELOPMENT servers
-    (cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port "$api_port") &
-    (cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && export NODE_ENV=development && pnpm install && pnpm dev --port "$frontend_port") &
-    
-    wait
-}
-
 cmd_lint() {
     echo "Running linters..."
     (cd image_processor && uv run ruff check image_processor/)
@@ -141,54 +129,24 @@ cmd_test_api() {
     echo "Running API tests..."
     cd api && uv sync --all-extras && uv run pytest -v
 }
-
-cmd_start() {
-    # Load ports from .env
-    local api_port="${API_PORT:-7432}"
-    local frontend_port="${FRONTEND_PORT:-7433}"
-    
-    # Check if ports are in use
-    if lsof -i ":$api_port" >/dev/null 2>&1; then
-        echo "Error: Port $api_port is already in use. Stop the existing process or change API_PORT in .env"
+cmd_build_local() {
+    # Validate required environment variables
+    if [ -z "$DOCKER_REPOSITORY" ] || [ -z "$TAG" ] || [ -z "$API_PORT" ] || [ -z "$FRONTEND_PORT" ] || [ -z "$API_URL" ]; then
+        echo "Error: Missing required environment variables. Make sure .env is properly configured."
+        echo "Required: DOCKER_REPOSITORY, TAG, API_PORT, FRONTEND_PORT, API_URL"
         exit 1
     fi
     
-    if lsof -i ":$frontend_port" >/dev/null 2>&1; then
-        echo "Error: Port $frontend_port is already in use. Stop the existing process or change FRONTEND_PORT in .env"
-        exit 1
-    fi
+    echo "Building all images locally..."
     
-    echo "Building frontend for production..."
-    (cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && export NODE_ENV=production && pnpm install && pnpm build)
+    # Build image_processor
+    docker build -t $DOCKER_REPOSITORY/image_processor:$TAG ./image_processor
     
-    if [ $? -ne 0 ]; then
-        echo "Frontend build failed"
-        exit 1
-    fi
+    # Build API
+    docker build --build-arg API_PORT=$API_PORT -f api/Dockerfile -t $DOCKER_REPOSITORY/image_processor_api:$TAG .
     
-    echo "Starting PRODUCTION servers..."
-    echo "API:      http://localhost:$api_port (gunicorn with 4 workers)"
-    echo "Frontend: http://localhost:$frontend_port (Next.js production server)"
-    echo ""
-    echo "Press Ctrl+C to stop both servers"
+    # Build frontend  
+    docker build --build-arg FRONTEND_PORT=$FRONTEND_PORT --build-arg API_URL=$API_URL -f frontend/Dockerfile -t $DOCKER_REPOSITORY/image_processor_frontend:$TAG .
     
-    # Proper cleanup with flag to prevent multiple executions
-    cleanup_done=false
-    cleanup() {
-        if [ "$cleanup_done" = true ]; then
-            return
-        fi
-        cleanup_done=true
-        echo ""
-        echo "Shutting down..."
-        kill 0 2>/dev/null
-        exit 0
-    }
-    trap cleanup EXIT INT TERM
-    
-    # Start PRODUCTION servers
-    (cd api && uv sync && uv run gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind "0.0.0.0:$api_port") &
-    (cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && export NODE_ENV=production && pnpm start -p "$frontend_port") &
-    
-    wait
+    echo "All images built locally"
 }
