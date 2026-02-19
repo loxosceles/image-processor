@@ -19,12 +19,12 @@ const TASKS = [
 ];
 
 const RESIZE_SIZES = [
-  { value: 64, label: "64×64 (Favicon)" },
-  { value: 128, label: "128×128 (Thumbnail)" },
-  { value: 256, label: "256×256 (Small)" },
-  { value: 512, label: "512×512 (Medium)" },
-  { value: 1024, label: "1024×1024 (Large)" },
-  { value: 2048, label: "2048×2048 (HD)" },
+  { value: 64, label: "64px (Favicon)" },
+  { value: 128, label: "128px (Thumbnail)" },
+  { value: 256, label: "256px (Small)" },
+  { value: 512, label: "512px (Medium)" },
+  { value: 1024, label: "1024px (Large)" },
+  { value: 2048, label: "2048px (HD)" },
 ];
 
 const FORMATS = [

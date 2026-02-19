@@ -20,24 +20,24 @@ def resize_image(
     size: tuple[int, int] = (128, 128),
 ) -> None:
     """
-    Resize an image to the specified size and save it to the output path.
+    Resize an image to fit within the specified size while preserving aspect ratio.
 
     Args:
         image_path: The path to the input image file.
         output_path: The path to save the resized image.
         format (optional): Output format. Defaults to "jpeg".
         quality (optional): Compression quality 0-100. Uses format defaults if None.
-        size (optional): The desired size for the resized image. Defaults to (128, 128).
+        size (optional): Maximum dimensions for the resized image. Defaults to (128, 128).
 
     Returns:
         None
     """
     try:
         with Image.open(image_path) as img:
-            img = img.resize(size)
+            img.thumbnail(size, Image.Resampling.LANCZOS)
             save_with_format(img, output_path, format, quality)
-    except Exception as e:
-        raise CorruptedFileError(f"Failed to process {image_path}: {e}")
+    except Exception as err:
+        raise CorruptedFileError(f"Failed to process {image_path}: {err}")
 
 
 def grayscale_image(
