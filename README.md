@@ -26,8 +26,20 @@ A browser-based interface for the image processor. Currently runs on localhost o
 ./dev-cli/manage.sh dev
 
 # Or separately:
-./dev-cli/manage.sh api      # http://localhost:8000
-./dev-cli/manage.sh frontend # http://localhost:3000
+./dev-cli/manage.sh api      # http://localhost:7432
+./dev-cli/manage.sh frontend # http://localhost:7433
+```
+
+## Development Ports
+
+Default ports (configurable in `.env`):
+- API: 7432
+- Frontend: 7433
+
+To change ports, edit `.env`:
+```bash
+API_PORT=9000
+FRONTEND_PORT=4000
 ```
 
 ### Features

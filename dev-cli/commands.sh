@@ -76,26 +76,58 @@ cmd_build_package() {
 }
 
 cmd_api() {
-    echo "Starting API server..."
-    cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    local api_port="${API_PORT:-7432}"
+    echo "Starting API server on port $api_port..."
+    cd api && uv sync && uv run gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind "0.0.0.0:$api_port"
 }
 
 cmd_frontend() {
-    FRONTEND_PORT=$((RANDOM % 1000 + 4000))
-    echo "Starting frontend dev server on port $FRONTEND_PORT..."
-    cd frontend && pnpm install && pnpm dev --port $FRONTEND_PORT
+    local api_port="${API_PORT:-7432}"
+    local frontend_port="${FRONTEND_PORT:-7433}"
+    echo "Starting frontend dev server on port $frontend_port..."
+    cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && pnpm install && pnpm dev --port "$frontend_port"
 }
 
 cmd_dev() {
-    FRONTEND_PORT=$((RANDOM % 1000 + 4000))
-    echo "Starting API and frontend in parallel..."
-    echo "API:      http://localhost:8000"
-    echo "Frontend: http://localhost:$FRONTEND_PORT"
+    # Load ports from .env
+    local api_port="${API_PORT:-7432}"
+    local frontend_port="${FRONTEND_PORT:-7433}"
+    
+    # Check if ports are in use
+    if lsof -i ":$api_port" >/dev/null 2>&1; then
+        echo "Error: Port $api_port is already in use. Stop the existing process or change API_PORT in .env"
+        exit 1
+    fi
+    
+    if lsof -i ":$frontend_port" >/dev/null 2>&1; then
+        echo "Error: Port $frontend_port is already in use. Stop the existing process or change FRONTEND_PORT in .env"
+        exit 1
+    fi
+    
+    echo "Starting DEVELOPMENT servers..."
+    echo "API:      http://localhost:$api_port (uvicorn with hot reload)"
+    echo "Frontend: http://localhost:$frontend_port (Next.js dev server)"
     echo ""
     echo "Press Ctrl+C to stop both servers"
-    trap 'echo ""; echo "Shutting down..."; kill 0' EXIT INT TERM
-    (cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) &
-    (cd frontend && pnpm install && pnpm dev --port $FRONTEND_PORT) &
+    
+    # Proper cleanup with flag to prevent multiple executions
+    cleanup_done=false
+    cleanup() {
+        if [ "$cleanup_done" = true ]; then
+            return
+        fi
+        cleanup_done=true
+        echo ""
+        echo "Shutting down..."
+        kill 0 2>/dev/null
+        exit 0
+    }
+    trap cleanup EXIT INT TERM
+    
+    # Start DEVELOPMENT servers
+    (cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port "$api_port") &
+    (cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && export NODE_ENV=development && pnpm install && pnpm dev --port "$frontend_port") &
+    
     wait
 }
 
@@ -108,4 +140,55 @@ cmd_lint() {
 cmd_test_api() {
     echo "Running API tests..."
     cd api && uv sync --all-extras && uv run pytest -v
+}
+
+cmd_start() {
+    # Load ports from .env
+    local api_port="${API_PORT:-7432}"
+    local frontend_port="${FRONTEND_PORT:-7433}"
+    
+    # Check if ports are in use
+    if lsof -i ":$api_port" >/dev/null 2>&1; then
+        echo "Error: Port $api_port is already in use. Stop the existing process or change API_PORT in .env"
+        exit 1
+    fi
+    
+    if lsof -i ":$frontend_port" >/dev/null 2>&1; then
+        echo "Error: Port $frontend_port is already in use. Stop the existing process or change FRONTEND_PORT in .env"
+        exit 1
+    fi
+    
+    echo "Building frontend for production..."
+    (cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && export NODE_ENV=production && pnpm install && pnpm build)
+    
+    if [ $? -ne 0 ]; then
+        echo "Frontend build failed"
+        exit 1
+    fi
+    
+    echo "Starting PRODUCTION servers..."
+    echo "API:      http://localhost:$api_port (gunicorn with 4 workers)"
+    echo "Frontend: http://localhost:$frontend_port (Next.js production server)"
+    echo ""
+    echo "Press Ctrl+C to stop both servers"
+    
+    # Proper cleanup with flag to prevent multiple executions
+    cleanup_done=false
+    cleanup() {
+        if [ "$cleanup_done" = true ]; then
+            return
+        fi
+        cleanup_done=true
+        echo ""
+        echo "Shutting down..."
+        kill 0 2>/dev/null
+        exit 0
+    }
+    trap cleanup EXIT INT TERM
+    
+    # Start PRODUCTION servers
+    (cd api && uv sync && uv run gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind "0.0.0.0:$api_port") &
+    (cd frontend && export NEXT_PUBLIC_API_URL="http://localhost:$api_port" && export NODE_ENV=production && pnpm start -p "$frontend_port") &
+    
+    wait
 }
