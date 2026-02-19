@@ -7,9 +7,13 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
         echo "USAGE: manage.sh <command> options"
         echo ""
         echo "COMMANDS:"
+        echo "  api            Start FastAPI backend server"
         echo "  build --no-cache Build and push Docker image to registry"
+        echo "  dev            Start API and frontend in parallel"
+        echo "  frontend       Start Next.js frontend dev server"
         echo "  help           Show this help message"
         echo "  isession       Start interactive development session"
+        echo "  lint           Run ruff linter on all Python code"
         echo "  test           Run pytest suite with volume mounting"
         echo "  image_processor Run image processor with arguments"
         echo "  package        Build and install package locally"
@@ -18,8 +22,9 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
         echo "  manage.sh help"
         echo "  manage.sh isession"
         echo "  manage.sh test"
+        echo "  manage.sh api"
+        echo "  manage.sh dev"
         echo "  manage.sh image_processor images/ --output processed/ --task resize"
-        echo "  manage.sh image_processor images/ --output processed/ --task resize --format webp --quality 80"
         exit 0
 fi
 
@@ -149,9 +154,13 @@ case "$_arg_command" in
         echo "USAGE: manage.sh <command> options"
         echo ""
         echo "COMMANDS:"
+        echo "  api            Start FastAPI backend server"
         echo "  build --no-cache Build and push Docker image to registry"
+        echo "  dev            Start API and frontend in parallel"
+        echo "  frontend       Start Next.js frontend dev server"
         echo "  help           Show this help message"
         echo "  isession       Start interactive development session"
+        echo "  lint           Run ruff linter on all Python code"
         echo "  test           Run pytest suite with volume mounting"
         echo "  image_processor Run image processor with arguments"
         echo "  package        Build and install package locally"
@@ -168,6 +177,10 @@ case "$_arg_command" in
     "test") cmd_run_tests ;;
     "image_processor") cmd_run_image_processor "${_arg_leftovers[@]}" ;;
     "package") cmd_build_package ;;
+    "api") cmd_api ;;
+    "frontend") cmd_frontend ;;
+    "dev") cmd_dev ;;
+    "lint") cmd_lint ;;
     *)
         echo "Unknown command: $_arg_command"
         echo "Run 'manage.sh help' for usage"

@@ -74,3 +74,27 @@ cmd_build_package() {
     echo "Package built and installed successfully!"
     echo "You can now use: image-processor"
 }
+
+cmd_api() {
+    echo "Starting API server..."
+    cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+}
+
+cmd_frontend() {
+    echo "Starting frontend dev server..."
+    cd frontend && pnpm install && pnpm dev
+}
+
+cmd_dev() {
+    echo "Starting API and frontend in parallel..."
+    trap 'kill 0' EXIT
+    (cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) &
+    (cd frontend && pnpm install && pnpm dev) &
+    wait
+}
+
+cmd_lint() {
+    echo "Running linters..."
+    (cd image_processor && uv run ruff check image_processor/)
+    (cd api && uv run ruff check app/)
+}
