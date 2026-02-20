@@ -1,7 +1,7 @@
 services:
   api:
     container_name: image_processor_api
-    image: ghcr.io/loxosceles/image_processor_api:${TAG}
+    image: ${DOCKER_REPOSITORY}/image_processor_api:${TAG}
     ports:
       - "${API_PORT}:${API_PORT}"
     volumes:
@@ -14,7 +14,7 @@ services:
 
   frontend:
     container_name: image_processor_frontend
-    image: ghcr.io/loxosceles/image_processor_frontend:${TAG}
+    image: ${DOCKER_REPOSITORY}/image_processor_frontend:${TAG}
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
