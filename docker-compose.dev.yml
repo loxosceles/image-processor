@@ -40,7 +40,7 @@ services:
 
   isession:
     container_name: isession
-    image: ghcr.io/loxosceles/isession:1.0.0
+    image: ${DOCKER_REPOSITORY}/isession:1.0.0
     command: ['uv', 'run', 'ipython']
     volumes:
       - ./image_processor/pyproject.toml:/app/pyproject.toml
