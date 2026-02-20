@@ -1,30 +1,24 @@
 services:
-  image_processor:
-    container_name: image_processor
-    image: ghcr.io/loxosceles/image_processor:1.0.0
+  api:
+    container_name: image_processor_api
+    image: ${DOCKER_REPOSITORY}/image_processor_api:${TAG}
+    ports:
+      - "${API_PORT}:${API_PORT}"
     volumes:
       - ${PWD}/images:/app/images
       - ${PWD}/processed:/app/processed
     environment:
       - INPUT_FOLDER=/app/images
       - OUTPUT_FOLDER=/app/processed
+    restart: unless-stopped
 
-  isession:
-    container_name: isession
-    image: ghcr.io/loxosceles/isession:1.0.0
-    command: ['uv', 'run', 'ipython']
-    volumes:
-      - ./image_processor/pyproject.toml:/app/pyproject.toml
-      - ./image_processor/image_processor:/app/image_processor
-      - isession_data:/app/.ipython/profile_default
-      - ${PWD}/isession/startup:/app/.ipython/profile_default/startup
-      - ${PWD}/images:/app/images
-      - ${PWD}/processed:/app/processed
+  frontend:
+    container_name: image_processor_frontend
+    image: ${DOCKER_REPOSITORY}/image_processor_frontend:${TAG}
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
-      - INPUT_FOLDER=/app/images
-      - OUTPUT_FOLDER=/app/processed
-    stdin_open: true
-    tty: true
-
-volumes:
-  isession_data:
+      - NEXT_PUBLIC_API_URL=${API_URL}
+    restart: unless-stopped
+    depends_on:
+      - api

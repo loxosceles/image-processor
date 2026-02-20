@@ -9,11 +9,14 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
         echo "COMMANDS:"
         echo "  api            Start FastAPI backend server"
         echo "  build --no-cache Build and push Docker image to registry"
-        echo "  dev            Start API and frontend in parallel"
+        echo "  build_local    Build all images locally without pushing"
+        echo "  dev            Start API and frontend in development mode"
         echo "  frontend       Start Next.js frontend dev server"
         echo "  help           Show this help message"
         echo "  isession       Start interactive development session"
         echo "  lint           Run ruff linter on all Python code"
+        echo "  start          Start API and frontend in production mode"
+        echo "  stop           Stop all running servers"
         echo "  test           Run pytest suite with volume mounting"
         echo "  test-api       Run API pytest tests"
         echo "  image_processor Run image processor with arguments"
@@ -149,6 +152,7 @@ case "$_arg_command" in
             cmd_build_and_push
         fi
         ;;
+    "build_local") cmd_build_local ;;
     "help")
         echo "Development management script"
         echo ""
@@ -157,11 +161,14 @@ case "$_arg_command" in
         echo "COMMANDS:"
         echo "  api            Start FastAPI backend server"
         echo "  build --no-cache Build and push Docker image to registry"
-        echo "  dev            Start API and frontend in parallel"
+        echo "  build_local    Build all images locally without pushing"
+        echo "  dev            Start API and frontend in development mode"
         echo "  frontend       Start Next.js frontend dev server"
         echo "  help           Show this help message"
         echo "  isession       Start interactive development session"
         echo "  lint           Run ruff linter on all Python code"
+        echo "  start          Start API and frontend in production mode"
+        echo "  stop           Stop all running servers"
         echo "  test           Run pytest suite with volume mounting"
         echo "  test-api       Run API pytest tests"
         echo "  image_processor Run image processor with arguments"
@@ -182,6 +189,8 @@ case "$_arg_command" in
     "api") cmd_api ;;
     "frontend") cmd_frontend ;;
     "dev") cmd_dev ;;
+    "start") cmd_start ;;
+    "stop") cmd_stop ;;
     "lint") cmd_lint ;;
     "test-api") cmd_test_api ;;
     *)

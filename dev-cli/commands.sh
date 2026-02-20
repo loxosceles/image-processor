@@ -23,6 +23,13 @@ cmd_run_tests() {
 }
 
 cmd_build_and_push() {
+    # Validate required environment variables
+    if [ -z "$DOCKER_REPOSITORY" ] || [ -z "$TAG" ] || [ -z "$API_PORT" ] || [ -z "$FRONTEND_PORT" ] || [ -z "$API_URL" ]; then
+        echo "Error: Missing required environment variables. Make sure .env is properly configured."
+        echo "Required: DOCKER_REPOSITORY, TAG, API_PORT, FRONTEND_PORT, API_URL"
+        exit 1
+    fi
+    
     local no_cache="$1"
     local cache_flag=""
     
@@ -33,13 +40,24 @@ cmd_build_and_push() {
         echo "Building with cache (default)"
     fi
     
+    # Build all images first (without login)
+    docker build $cache_flag -t image_processor ./image_processor &&
+        docker tag image_processor $DOCKER_REPOSITORY/image_processor:$TAG
+
+    docker build $cache_flag --build-arg API_PORT=$API_PORT -f api/Dockerfile -t image_processor_api . &&
+        docker tag image_processor_api $DOCKER_REPOSITORY/image_processor_api:$TAG
+
+    docker build $cache_flag --build-arg FRONTEND_PORT=$FRONTEND_PORT --build-arg API_URL=$API_URL -f frontend/Dockerfile -t image_processor_frontend . &&
+        docker tag image_processor_frontend $DOCKER_REPOSITORY/image_processor_frontend:$TAG
+
+    # Login and push after building
     docker login ghcr.io -u $GITHUB_USERNAME --password-stdin <<EOF
 $GITHUB_PAT
 EOF
-    cd image_processor &&
-        docker build $cache_flag -t image_processor . &&
-        docker tag image_processor $DOCKER_REPOSITORY/image_processor:$TAG &&
-        docker push $DOCKER_REPOSITORY/image_processor:$TAG
+    
+    docker push $DOCKER_REPOSITORY/image_processor:$TAG
+    docker push $DOCKER_REPOSITORY/image_processor_api:$TAG
+    docker push $DOCKER_REPOSITORY/image_processor_frontend:$TAG
 }
 
 cmd_isession() {
@@ -70,35 +88,37 @@ cmd_build_package() {
     cd image_processor
     uv build
     echo "Installing package..."
-    uv tool install dist/*.whl --force
+    uv pip install dist/*.whl --force-reinstall
     echo "Package built and installed successfully!"
     echo "You can now use: image-processor"
 }
 
+cmd_dev() {
+    echo "Starting DEVELOPMENT servers..."
+    docker compose -f docker-compose.dev.yml up --build
+}
+
+cmd_start() {
+    echo "Starting PRODUCTION servers..."
+    docker compose up
+}
+
+cmd_stop() {
+    echo "Stopping all image processor servers..."
+    docker compose -f docker-compose.dev.yml down 2>/dev/null || true
+    docker compose down 2>/dev/null || true
+    echo "All servers stopped"
+}
+
 cmd_api() {
-    echo "Starting API server..."
-    cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    echo "Starting API server only..."
+    docker compose -f docker-compose.dev.yml up --build api
 }
 
 cmd_frontend() {
-    FRONTEND_PORT=$((RANDOM % 1000 + 4000))
-    echo "Starting frontend dev server on port $FRONTEND_PORT..."
-    cd frontend && pnpm install && pnpm dev --port $FRONTEND_PORT
+    echo "Starting frontend server only..."
+    docker compose -f docker-compose.dev.yml up --build frontend
 }
-
-cmd_dev() {
-    FRONTEND_PORT=$((RANDOM % 1000 + 4000))
-    echo "Starting API and frontend in parallel..."
-    echo "API:      http://localhost:8000"
-    echo "Frontend: http://localhost:$FRONTEND_PORT"
-    echo ""
-    echo "Press Ctrl+C to stop both servers"
-    trap 'echo ""; echo "Shutting down..."; kill 0' EXIT INT TERM
-    (cd api && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) &
-    (cd frontend && pnpm install && pnpm dev --port $FRONTEND_PORT) &
-    wait
-}
-
 cmd_lint() {
     echo "Running linters..."
     (cd image_processor && uv run ruff check image_processor/)
@@ -108,4 +128,25 @@ cmd_lint() {
 cmd_test_api() {
     echo "Running API tests..."
     cd api && uv sync --all-extras && uv run pytest -v
+}
+cmd_build_local() {
+    # Validate required environment variables
+    if [ -z "$DOCKER_REPOSITORY" ] || [ -z "$TAG" ] || [ -z "$API_PORT" ] || [ -z "$FRONTEND_PORT" ] || [ -z "$API_URL" ]; then
+        echo "Error: Missing required environment variables. Make sure .env is properly configured."
+        echo "Required: DOCKER_REPOSITORY, TAG, API_PORT, FRONTEND_PORT, API_URL"
+        exit 1
+    fi
+    
+    echo "Building all images locally..."
+    
+    # Build image_processor
+    docker build -t $DOCKER_REPOSITORY/image_processor:$TAG ./image_processor
+    
+    # Build API
+    docker build --build-arg API_PORT=$API_PORT -f api/Dockerfile -t $DOCKER_REPOSITORY/image_processor_api:$TAG .
+    
+    # Build frontend  
+    docker build --build-arg FRONTEND_PORT=$FRONTEND_PORT --build-arg API_URL=$API_URL -f frontend/Dockerfile -t $DOCKER_REPOSITORY/image_processor_frontend:$TAG .
+    
+    echo "All images built locally"
 }

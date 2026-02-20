@@ -1,18 +1,46 @@
 services:
-  image_processor:
-    container_name: image_processor
+  api:
+    container_name: image_processor_api
     build:
-      context: ./image_processor
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api/Dockerfile.dev
+      args:
+        - API_PORT=${API_PORT}
+    ports:
+      - "${API_PORT}:${API_PORT}"
     volumes:
-      - ${PWD}/image_processor:/app
+      - ./api:/app/api
+      - ./image_processor:/app/image_processor
+      - ${PWD}/images:/app/images
+      - ${PWD}/processed:/app/processed
     environment:
+      - NODE_ENV=development
       - INPUT_FOLDER=/app/images
       - OUTPUT_FOLDER=/app/processed
 
+  frontend:
+    container_name: image_processor_frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+      args:
+        - FRONTEND_PORT=${FRONTEND_PORT}
+        - API_URL=${API_URL}
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=${API_URL}
+      - NODE_ENV=development
+    depends_on:
+      - api
+
   isession:
     container_name: isession
-    image: ghcr.io/loxosceles/isession:1.0.0
+    image: ${DOCKER_REPOSITORY}/isession:1.0.0
     command: ['uv', 'run', 'ipython']
     volumes:
       - ./image_processor/pyproject.toml:/app/pyproject.toml
